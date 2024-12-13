@@ -62,7 +62,7 @@ async function processAudioData(ws, rws, audioData) {
                 type: "message",
                 role: "user",
                 content: [{
-                    type: "audio",
+                    type: "input_audio",
                     data: audioBuffer.toString('base64')
                 }]
             }
@@ -82,16 +82,6 @@ async function processAudioData(ws, rws, audioData) {
         console.warn("OpenAI WebSocket not open, cannot send audio data");
     }
 }
-
-// const message = {
-//     event: 'media',
-//     stream_sid: 'tts-response',
-//     media: {
-//       payload: audioBuffer.toString('base64')
-//     }
-//   };
-//   ws.send(JSON.stringify(message));
-//   console.log('Sent TTS response');
 
 function openRealtimeWebSocket(ws, streamSid) {
     console.log("\n=== Opening OpenAI Realtime WebSocket ===");
@@ -114,21 +104,6 @@ function openRealtimeWebSocket(ws, streamSid) {
 
     rws.on('open', () => {
         console.log("\n=== OpenAI WebSocket Connected ===");
-        if (process.env.STAGE === 'dev') {
-            console.log("Development mode: Sending test message");
-            rws.send(JSON.stringify({
-                type: "conversation.item.create",
-                item: {
-                    type: "message",
-                    role: "user",
-                    content: [{
-                        type: "input_text",
-                        text: "Hello, this is a test message"
-                    }]
-                }
-            }));
-            console.log("Test message sent");
-        }
     });
 
     rws.on('close', () => {
@@ -160,6 +135,9 @@ function setupWebSocket(server) {
 
         let audioData = [];
         let messageDelivered = false;
+        let silenceTimer = null;
+        const SILENCE_THRESHOLD = 2000; // 2 seconds of silence to trigger processing
+        
         console.log("Initializing OpenAI WebSocket");
         const rws = openRealtimeWebSocket(ws, 'default-sid');
 
@@ -169,6 +147,9 @@ function setupWebSocket(server) {
 
         const cleanup = () => {
             console.log("\n=== Cleaning up Connection ===");
+            if (silenceTimer) {
+                clearTimeout(silenceTimer);
+            }
             if (rws) {
                 console.log("Closing OpenAI WebSocket");
                 rws.removeAllListeners();
@@ -178,6 +159,17 @@ function setupWebSocket(server) {
             ws.removeAllListeners();
             connections.delete(ws);
             console.log("Remaining connections:", connections.size);
+        };
+
+        const processSpeech = async () => {
+            if (audioData.length > 0 && !messageDelivered) {
+                console.log("Silence detected, processing speech");
+                messageDelivered = true;
+                await processAudioData(ws, rws, audioData);
+                audioData = [];
+                messageDelivered = false;
+                console.log("Audio buffer cleared");
+            }
         };
 
         ws.on('message', async (message) => {
@@ -195,18 +187,21 @@ function setupWebSocket(server) {
                     const payload = data.media.payload;
                     const chunk = Buffer.from(payload, 'base64');
 
-                    console.log("Production mode: Processing as audio");
+                    console.log("Received audio chunk");
                     audioData.push(chunk);
                     console.log("Audio chunks collected:", audioData.length);
 
-                    if (audioData.length >= 10 && !messageDelivered) {
-                        console.log("Processing collected audio chunks");
-                        messageDelivered = true;
-                        await processAudioData(ws, rws, audioData);
-                        audioData = [];
-                        messageDelivered = false;
-                        console.log("Audio buffer cleared");
+                    // Reset the silence timer
+                    if (silenceTimer) {
+                        clearTimeout(silenceTimer);
                     }
+                    
+                    // Set a new silence timer
+                    silenceTimer = setTimeout(async () => {
+                        console.log("Silence detected");
+                        await processSpeech();
+                    }, SILENCE_THRESHOLD);
+                    
                     break;
 
                 case 'mark':
@@ -215,6 +210,11 @@ function setupWebSocket(server) {
 
                 case 'stop':
                     console.log("Stop event received");
+                    // Process any remaining audio when stop is received
+                    if (silenceTimer) {
+                        clearTimeout(silenceTimer);
+                    }
+                    // await processSpeech();
                     break;
 
                 default:
