@@ -43,6 +43,12 @@ async function handleMessage(ws, streamSid, messageStr) {
       console.log("\n--- Session Complete ---");
       break;
 
+    case "session.created":
+      console.log("\n--- Session Created ---");
+      console.log("Session ID:", message.session.id);
+      // Additional handling if needed
+      break;
+
     default:
       console.log("\n--- Unhandled Message Type ---");
       console.log("Type:", message.type);
@@ -72,7 +78,7 @@ async function processAudioData(ws, rws, audioData) {
     const createResponseEvent = {
       type: "response.create",
       response: {
-        modalities: ["audio"],
+        modalities: ["text", "audio"],
         instructions: "Please assist the user."
       }
     };
@@ -183,8 +189,11 @@ function setupWebSocket(server) {
           break;
 
         case 'media':
+          console.log("Media event received");
+          
           const payload = data.media.payload;
           const chunk = Buffer.from(payload, 'base64');
+
 
           audioData.push(chunk);
 
@@ -211,7 +220,7 @@ function setupWebSocket(server) {
           if (silenceTimer) {
             clearTimeout(silenceTimer);
           }
-          // await processSpeech();
+          await processSpeech();
           break;
 
         default:
