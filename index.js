@@ -143,6 +143,8 @@ function setupWebSocket(server) {
     let messageDelivered = false;
     let silenceTimer = null;
     const SILENCE_THRESHOLD = 2000; // 2 seconds of silence to trigger processing
+    let mediaTimer = null;
+    const MEDIA_DURATION = 6000; // 6 seconds to capture media
 
     console.log("Initializing OpenAI WebSocket");
     const rws = openRealtimeWebSocket(ws, 'default-sid');
@@ -155,6 +157,9 @@ function setupWebSocket(server) {
       console.log("\n=== Cleaning up Connection ===");
       if (silenceTimer) {
         clearTimeout(silenceTimer);
+      }
+      if (mediaTimer) {
+        clearTimeout(mediaTimer);
       }
       if (rws) {
         console.log("Closing OpenAI WebSocket");
@@ -190,12 +195,18 @@ function setupWebSocket(server) {
 
         case 'media':
           console.log("Media event received");
-          
           const payload = data.media.payload;
           const chunk = Buffer.from(payload, 'base64');
 
-
           audioData.push(chunk);
+
+          // Start a timer to process audio after 6 seconds
+          if (!mediaTimer) {
+            mediaTimer = setTimeout(async () => {
+              console.log("6 seconds elapsed, processing audio");
+              await processSpeech();
+            }, MEDIA_DURATION);
+          }
 
           // Reset the silence timer
           if (silenceTimer) {
@@ -203,10 +214,10 @@ function setupWebSocket(server) {
           }
 
           // Set a new silence timer
-          silenceTimer = setTimeout(async () => {
-            console.log("Silence detected");
-            await processSpeech();
-          }, SILENCE_THRESHOLD);
+          // silenceTimer = setTimeout(async () => {
+          //   console.log("Silence detected");
+          //   await processSpeech();
+          // }, SILENCE_THRESHOLD);
 
           break;
 
@@ -220,7 +231,10 @@ function setupWebSocket(server) {
           if (silenceTimer) {
             clearTimeout(silenceTimer);
           }
-          await processSpeech();
+          if (mediaTimer) {
+            clearTimeout(mediaTimer);
+          }
+          // await processSpeech();
           break;
 
         default:
