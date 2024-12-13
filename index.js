@@ -165,6 +165,8 @@ function setupWebSocket(server) {
     };
 
     const processSpeech = async () => {
+      console.log("\n=== Processing Speech ===");
+
       if (audioData.length > 0 && !messageDelivered) {
         console.log("Silence detected, processing speech");
         messageDelivered = true;
