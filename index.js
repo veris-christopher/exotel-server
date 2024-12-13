@@ -194,7 +194,7 @@ function setupWebSocket(server) {
           break;
 
         case 'media':
-          console.log("Media event received");
+          // console.log("Media event received");
           const payload = data.media.payload;
           const chunk = Buffer.from(payload, 'base64');
 
