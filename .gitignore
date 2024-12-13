@@ -1,0 +1,5 @@
+# Node modules
+/node_modules/
+index2.js
+realtime.js
+.env
