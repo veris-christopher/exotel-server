@@ -190,15 +190,15 @@ function setupWebSocket(server) {
           audioData.push(chunk);
 
           // Reset the silence timer
-          // if (silenceTimer) {
-          //   clearTimeout(silenceTimer);
-          // }
+          if (silenceTimer) {
+            clearTimeout(silenceTimer);
+          }
 
           // Set a new silence timer
-          // silenceTimer = setTimeout(async () => {
-          //   console.log("Silence detected");
-          //   await processSpeech();
-          // }, SILENCE_THRESHOLD);
+          silenceTimer = setTimeout(async () => {
+            console.log("Silence detected");
+            await processSpeech();
+          }, SILENCE_THRESHOLD);
 
           break;
 
@@ -212,7 +212,7 @@ function setupWebSocket(server) {
           if (silenceTimer) {
             clearTimeout(silenceTimer);
           }
-          await processSpeech();
+          // await processSpeech();
           break;
 
         default:
