@@ -62,10 +62,8 @@ async function processAudioData(ws, rws, audioData) {
         type: "message",
         role: "user",
         content: [{
-          // type: "input_audio",
-          // data: audioBuffer.toString('base64')
-          type: "input_text",
-          text: 'Hello I am Chris'
+          type: "input_audio",
+          data: audioBuffer.toString('base64')
         }]
       }
     }));
@@ -75,8 +73,7 @@ async function processAudioData(ws, rws, audioData) {
       type: "response.create",
       response: {
         modalities: ["audio"],
-        // instructions: "Please assist the user."
-        instructions: "Say hi to the user."
+        instructions: "Please assist the user."
       }
     };
 
