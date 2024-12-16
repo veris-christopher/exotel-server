@@ -44,7 +44,7 @@ async function handleMessage(ws, streamSid, messageStr) {
         console.log("Sending audio chunk to client WebSocket");
 
         // Split into smaller chunks and send with delay
-        const chunkSize = CHUNK_MAX_SIZE;
+        const chunkSize = CHUNK_MIN_SIZE;
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
           const chunk = audioBuffer.subarray(i, Math.min(i + chunkSize, audioBuffer.length));
 
@@ -162,9 +162,9 @@ function openRealtimeWebSocket(ws, streamSid) {
     }
   });
 
-  const messageHandler = (message) => {
+  const messageHandler = async (message) => {
     console.log("\n--- Received OpenAI Message ---");
-    handleMessage(ws, streamSid, message);
+    await handleMessage(ws, streamSid, message);
   };
 
   rws.on('open', () => {
