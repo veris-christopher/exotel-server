@@ -98,6 +98,8 @@ function handleResponseChunks(base64AudioChunk) {
 
   let audioBuffer = Buffer.from(base64AudioChunk, "base64")
 
+  console.log("Audio chunk size:", audioBuffer.length);
+
   if (audioBuffer.length < CHUNK_MIN_SIZE || audioBuffer.length > CHUNK_MAX_SIZE || audioBuffer.length % CHUNK_MULTIPLE !== 0) {
     // Adjust the chunk size here
     // For example, you can pad the buffer or split it into smaller chunks
