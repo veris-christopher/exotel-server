@@ -24,42 +24,17 @@ async function handleMessage(ws, streamSid, messageStr) {
     case "response.audio.delta":
       console.log("\n--- Received Audio Delta ---");
       const base64AudioChunk = message.delta;
-      // const audioBuffer = handleResponseChunks(base64AudioChunk);
-      // if (ws.readyState === WebSocket.OPEN) {
-      //   console.log("Sending audio chunk to client WebSocket");
-
-      //   ws.send(JSON.stringify({
-      //     event: 'media',
-      //     stream_sid: streamSid,
-      //     media: {
-      //       payload: audioBuffer.toString('base64')
-      //     }
-      //   }));
-      // } else {
-      //   console.warn("WebSocket not open, cannot write audio");
-      // }
-
-      const audioBuffer = Buffer.from(base64AudioChunk, "base64");
+      const audioBuffer = handleResponseChunks(base64AudioChunk);
       if (ws.readyState === WebSocket.OPEN) {
         console.log("Sending audio chunk to client WebSocket");
 
-        // Split into smaller chunks and send with delay
-        const chunkSize = CHUNK_MULTIPLE;
-        for (let i = 0; i < audioBuffer.length; i += chunkSize) {
-          const chunk = audioBuffer.subarray(i, Math.min(i + chunkSize, audioBuffer.length));
-
-          // Send the current chunk
-          ws.send(JSON.stringify({
-            event: 'media',
-            stream_sid: streamSid,
-            media: {
-              payload: chunk.toString('base64')
-            }
-          }));
-
-          // Add delay before next chunk
-          await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
-        }
+        ws.send(JSON.stringify({
+          event: 'media',
+          stream_sid: streamSid,
+          media: {
+            payload: audioBuffer.toString('base64')
+          }
+        }));
       } else {
         console.warn("WebSocket not open, cannot write audio");
       }
@@ -256,8 +231,7 @@ function setupWebSocket(server) {
 
         case 'media':
           if (!mediaConnected) {
-            console.log("Media event received");
-            console.log("Media chunk size:", data.media.payload.length);
+            console.log("Media event received", message);
             mediaConnected = true;
           }
           const payload = data.media.payload;
