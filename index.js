@@ -20,7 +20,7 @@ async function handleMessage(ws, streamSid, messageStr) {
   console.log("Parsed message type:", message.type);
   console.log("Full message:", message);
 
-  switch (message.type) { 
+  switch (message.type) {
     case "response.audio.delta":
       console.log("\n--- Received Audio Delta ---");
       const base64AudioChunk = message.delta;
@@ -47,7 +47,7 @@ async function handleMessage(ws, streamSid, messageStr) {
         const chunkSize = CHUNK_MAX_SIZE;
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
           const chunk = audioBuffer.subarray(i, Math.min(i + chunkSize, audioBuffer.length));
-          
+
           // Send the current chunk
           ws.send(JSON.stringify({
             event: 'media',
@@ -118,23 +118,6 @@ async function processAudioData(ws, rws, audioData) {
     console.warn("OpenAI WebSocket not open, cannot send audio data");
   }
 }
-
-
-  console.log("Audio processing complete");
-
-  if (rws.readyState === WebSocket.OPEN) {
-    const createResponseEvent = {
-      type: "response.create",
-      response: {
-        modalities: ["text", "audio"],
-        instructions: "Please assist the user."
-      }
-    };
-
-    rws.send(JSON.stringify(createResponseEvent));
-  } else {
-    console.warn("OpenAI WebSocket not open, cannot send audio data");
-  }
 
 function handleResponseChunks(base64AudioChunk) {
   console.log("\n=== Handling Response Chunks ===");
