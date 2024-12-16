@@ -5,6 +5,10 @@ const EventEmitter = require('events');
 EventEmitter.defaultMaxListeners = 15;
 const { Buffer } = require('buffer');
 
+const CHUNK_MIN_SIZE = 3200; // 3.2k bytes
+const CHUNK_MAX_SIZE = 100000; // 100k bytes
+const CHUNK_MULTIPLE = 320; // Must be a multiple of 320 bytes
+
 const app = express();
 
 async function handleMessage(ws, streamSid, messageStr) {
@@ -15,11 +19,11 @@ async function handleMessage(ws, streamSid, messageStr) {
   console.log("Parsed message type:", message.type);
   console.log("Full message:", message);
 
-  switch (message.type) {
+  switch (message.type) { 
     case "response.audio.delta":
       console.log("\n--- Received Audio Delta ---");
       const base64AudioChunk = message.delta;
-      const audioBuffer = Buffer.from(base64AudioChunk, "base64");
+      const audioBuffer = handleResponseChunks(base64AudioChunk);
       if (ws.readyState === WebSocket.OPEN) {
         console.log("Sending audio chunk to client WebSocket");
 
@@ -87,6 +91,33 @@ async function processAudioData(ws, rws, audioData) {
   } else {
     console.warn("OpenAI WebSocket not open, cannot send audio data");
   }
+}
+
+function handleResponseChunks(base64AudioChunk) {
+  console.log("\n=== Handling Response Chunks ===");
+
+  let audioBuffer = Buffer.from(base64AudioChunk, "base64")
+
+  if (audioBuffer.length < CHUNK_MIN_SIZE || audioBuffer.length > CHUNK_MAX_SIZE || audioBuffer.length % CHUNK_MULTIPLE !== 0) {
+    // Adjust the chunk size here
+    // For example, you can pad the buffer or split it into smaller chunks
+    console.log("Adjusting audio chunk size...");
+    // Example: Split into smaller chunks if too large
+    if (audioBuffer.length > CHUNK_MAX_SIZE) {
+      const chunks = [];
+      for (let i = 0; i < audioBuffer.length; i += CHUNK_MAX_SIZE) {
+        chunks.push(audioBuffer.slice(i, i + CHUNK_MAX_SIZE));
+      }
+      audioBuffer = Buffer.concat(chunks);
+    }
+    // Example: Pad if not a multiple of 320 bytes
+    if (audioBuffer.length % CHUNK_MULTIPLE !== 0) {
+      const padding = Buffer.alloc(CHUNK_MULTIPLE - (audioBuffer.length % CHUNK_MULTIPLE));
+      audioBuffer = Buffer.concat([audioBuffer, padding]);
+    }
+  }
+
+  return audioBuffer;
 }
 
 function openRealtimeWebSocket(ws, streamSid) {
