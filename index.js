@@ -5,6 +5,11 @@ const EventEmitter = require('events');
 EventEmitter.defaultMaxListeners = 15;
 const { Buffer } = require('buffer');
 
+const CHUNK_MIN_SIZE = 3200; // 3.2k bytes
+const CHUNK_MAX_SIZE = 100000; // 100k bytes
+const CHUNK_MULTIPLE = 320; // Must be a multiple of 320 bytes
+const CHUNK_DELAY = 250; // 250ms between processing chunks
+
 const app = express();
 
 async function handleMessage(ws, streamSid, messageStr) {
