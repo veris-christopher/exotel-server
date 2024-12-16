@@ -24,17 +24,42 @@ async function handleMessage(ws, streamSid, messageStr) {
     case "response.audio.delta":
       console.log("\n--- Received Audio Delta ---");
       const base64AudioChunk = message.delta;
-      const audioBuffer = handleResponseChunks(base64AudioChunk);
+      // const audioBuffer = handleResponseChunks(base64AudioChunk);
+      // if (ws.readyState === WebSocket.OPEN) {
+      //   console.log("Sending audio chunk to client WebSocket");
+
+      //   ws.send(JSON.stringify({
+      //     event: 'media',
+      //     stream_sid: streamSid,
+      //     media: {
+      //       payload: audioBuffer.toString('base64')
+      //     }
+      //   }));
+      // } else {
+      //   console.warn("WebSocket not open, cannot write audio");
+      // }
+
+      const audioBuffer = Buffer.from(base64AudioChunk, "base64");
       if (ws.readyState === WebSocket.OPEN) {
         console.log("Sending audio chunk to client WebSocket");
 
-        ws.send(JSON.stringify({
-          event: 'media',
-          stream_sid: streamSid,
-          media: {
-            payload: audioBuffer.toString('base64')
-          }
-        }));
+        // Split into smaller chunks and send with delay
+        const chunkSize = CHUNK_MAX_SIZE;
+        for (let i = 0; i < audioBuffer.length; i += chunkSize) {
+          const chunk = audioBuffer.subarray(i, Math.min(i + chunkSize, audioBuffer.length));
+          
+          // Send the current chunk
+          ws.send(JSON.stringify({
+            event: 'media',
+            stream_sid: streamSid,
+            media: {
+              payload: chunk.toString('base64')
+            }
+          }));
+
+          // Add delay before next chunk
+          await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
+        }
       } else {
         console.warn("WebSocket not open, cannot write audio");
       }
@@ -60,67 +85,40 @@ async function handleMessage(ws, streamSid, messageStr) {
   }
 }
 
-// async function processAudioData(ws, rws, audioData) {
-//   console.log("\n=== Processing Audio Data ===");
-//   const audioBuffer = Buffer.concat(audioData);
-//   console.log("Audio buffer size:", audioBuffer.length);
-
-//   if (rws.readyState === WebSocket.OPEN) {
-//     console.log("Sending audio data to OpenAI");
-//     rws.send(JSON.stringify({
-//       type: "conversation.item.create",
-//       item: {
-//         type: "message",
-//         role: "user",
-//         content: [{
-//           type: "input_audio",
-//           data: audioBuffer.toString('base64')
-//         }]
-//       }
-//     }));
-//     console.log("Audio data sent to OpenAI");
-
-//     const createResponseEvent = {
-//       type: "response.create",
-//       response: {
-//         modalities: ["text", "audio"],
-//         instructions: "Please assist the user."
-//       }
-//     };
-
-//     rws.send(JSON.stringify(createResponseEvent));
-//   } else {
-//     console.warn("OpenAI WebSocket not open, cannot send audio data");
-//   }
-// }
-
 async function processAudioData(ws, rws, audioData) {
   console.log("\n=== Processing Audio Data ===");
-  
-  // Process chunks with controlled timing
-  for (let i = 0; i < audioData.length; i++) {
-    const chunk = audioData[i];
-    
-    if (rws.readyState === WebSocket.OPEN) {
-      console.log(`Processing chunk ${i + 1}/${audioData.length}`);
-      
-      // Send the chunk
-      rws.send(JSON.stringify({
-        type: "conversation.item.create",
-        item: {
-          type: "message",
-          role: "user",
-          content: [{
-            type: "input_audio",
-            data: chunk.toString('base64')
-          }]
-        }
-      }));
+  const audioBuffer = Buffer.concat(audioData);
+  console.log("Audio buffer size:", audioBuffer.length);
 
-      // Add delay between chunks
-      await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
-    }
+  if (rws.readyState === WebSocket.OPEN) {
+    console.log("Sending audio data to OpenAI");
+    rws.send(JSON.stringify({
+      type: "conversation.item.create",
+      item: {
+        type: "message",
+        role: "user",
+        content: [{
+          type: "input_audio",
+          data: audioBuffer.toString('base64')
+        }]
+      }
+    }));
+    console.log("Audio data sent to OpenAI");
+
+    const createResponseEvent = {
+      type: "response.create",
+      response: {
+        modalities: ["text", "audio"],
+        instructions: "Please assist the user."
+      }
+    };
+
+    rws.send(JSON.stringify(createResponseEvent));
+  } else {
+    console.warn("OpenAI WebSocket not open, cannot send audio data");
   }
+}
+
 
   console.log("Audio processing complete");
 
@@ -137,7 +135,6 @@ async function processAudioData(ws, rws, audioData) {
   } else {
     console.warn("OpenAI WebSocket not open, cannot send audio data");
   }
-}
 
 function handleResponseChunks(base64AudioChunk) {
   console.log("\n=== Handling Response Chunks ===");
