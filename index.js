@@ -8,6 +8,7 @@ const { Buffer } = require('buffer');
 const CHUNK_MIN_SIZE = 3200; // 3.2k bytes
 const CHUNK_MAX_SIZE = 100000; // 100k bytes
 const CHUNK_MULTIPLE = 320; // Must be a multiple of 320 bytes
+const CHUNK_DELAY = 250; // 250ms between processing chunks
 
 const app = express();
 
@@ -59,26 +60,71 @@ async function handleMessage(ws, streamSid, messageStr) {
   }
 }
 
+// async function processAudioData(ws, rws, audioData) {
+//   console.log("\n=== Processing Audio Data ===");
+//   const audioBuffer = Buffer.concat(audioData);
+//   console.log("Audio buffer size:", audioBuffer.length);
+
+//   if (rws.readyState === WebSocket.OPEN) {
+//     console.log("Sending audio data to OpenAI");
+//     rws.send(JSON.stringify({
+//       type: "conversation.item.create",
+//       item: {
+//         type: "message",
+//         role: "user",
+//         content: [{
+//           type: "input_audio",
+//           data: audioBuffer.toString('base64')
+//         }]
+//       }
+//     }));
+//     console.log("Audio data sent to OpenAI");
+
+//     const createResponseEvent = {
+//       type: "response.create",
+//       response: {
+//         modalities: ["text", "audio"],
+//         instructions: "Please assist the user."
+//       }
+//     };
+
+//     rws.send(JSON.stringify(createResponseEvent));
+//   } else {
+//     console.warn("OpenAI WebSocket not open, cannot send audio data");
+//   }
+// }
+
 async function processAudioData(ws, rws, audioData) {
   console.log("\n=== Processing Audio Data ===");
-  const audioBuffer = Buffer.concat(audioData);
-  console.log("Audio buffer size:", audioBuffer.length);
+  
+  // Process chunks with controlled timing
+  for (let i = 0; i < audioData.length; i++) {
+    const chunk = audioData[i];
+    
+    if (rws.readyState === WebSocket.OPEN) {
+      console.log(`Processing chunk ${i + 1}/${audioData.length}`);
+      
+      // Send the chunk
+      rws.send(JSON.stringify({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: "user",
+          content: [{
+            type: "input_audio",
+            data: chunk.toString('base64')
+          }]
+        }
+      }));
+
+      // Add delay between chunks
+      await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
+    }
+  }
+
+  console.log("Audio processing complete");
 
   if (rws.readyState === WebSocket.OPEN) {
-    console.log("Sending audio data to OpenAI");
-    rws.send(JSON.stringify({
-      type: "conversation.item.create",
-      item: {
-        type: "message",
-        role: "user",
-        content: [{
-          type: "input_audio",
-          data: audioBuffer.toString('base64')
-        }]
-      }
-    }));
-    console.log("Audio data sent to OpenAI");
-
     const createResponseEvent = {
       type: "response.create",
       response: {
@@ -218,6 +264,8 @@ function setupWebSocket(server) {
       }
     };
 
+    let mediaConnected = false; // Add flag to track media connection status
+
     ws.on('message', async (message) => {
       const data = JSON.parse(message);
 
@@ -227,7 +275,10 @@ function setupWebSocket(server) {
           break;
 
         case 'media':
-          console.log("Media event received");
+          if (!mediaConnected) {
+            console.log("Media event received");
+            mediaConnected = true;
+          }
           const payload = data.media.payload;
           const chunk = Buffer.from(payload, 'base64');
 
