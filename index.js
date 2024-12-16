@@ -5,11 +5,6 @@ const EventEmitter = require('events');
 EventEmitter.defaultMaxListeners = 15;
 const { Buffer } = require('buffer');
 
-const CHUNK_MIN_SIZE = 3200; // 3.2k bytes
-const CHUNK_MAX_SIZE = 100000; // 100k bytes
-const CHUNK_MULTIPLE = 320; // Must be a multiple of 320 bytes
-const CHUNK_DELAY = 250; // 250ms between processing chunks
-
 const app = express();
 
 async function handleMessage(ws, streamSid, messageStr) {
@@ -97,29 +92,49 @@ async function processAudioData(ws, rws, audioData) {
 function handleResponseChunks(base64AudioChunk) {
   console.log("\n=== Handling Response Chunks ===");
 
-  let audioBuffer = Buffer.from(base64AudioChunk, "base64")
+  let audioBuffer = Buffer.from(base64AudioChunk, "base64");
+  console.log("Original Audio chunk size:", audioBuffer.length);
 
-  console.log("Audio chunk size:", audioBuffer.length);
+  // Sophisticated Chunk Management
+  const adjustedBuffer = optimizeAudioChunk(audioBuffer);
 
-  if (audioBuffer.length < CHUNK_MIN_SIZE || audioBuffer.length > CHUNK_MAX_SIZE || audioBuffer.length % CHUNK_MULTIPLE !== 0) {
-    // Adjust the chunk size here
-    // For example, you can pad the buffer or split it into smaller chunks
-    console.log("Adjusting audio chunk size...");
-    // Example: Split into smaller chunks if too large
-    if (audioBuffer.length > CHUNK_MAX_SIZE) {
-      const chunks = [];
-      for (let i = 0; i < audioBuffer.length; i += CHUNK_MAX_SIZE) {
-        chunks.push(audioBuffer.subarray(i, i + CHUNK_MAX_SIZE));
-      }
-      audioBuffer = Buffer.concat(chunks);
-    }
-    // Example: Pad if not a multiple of 320 bytes
-    if (audioBuffer.length % CHUNK_MULTIPLE !== 0) {
-      const padding = Buffer.alloc(CHUNK_MULTIPLE - (audioBuffer.length % CHUNK_MULTIPLE));
-      audioBuffer = Buffer.concat([audioBuffer, padding]);
-    }
+  return adjustedBuffer;
+}
+
+function optimizeAudioChunk(audioBuffer) {
+  // 1. Size Validation
+  const CHUNK_MIN_SIZE = 3200;   // 3.2 KB
+  const CHUNK_MAX_SIZE = 100000; // 100 KB
+  const CHUNK_MULTIPLE = 320;    // Must be multiple of 320 bytes
+
+  // Too Small: Potential Audio Gaps
+  if (audioBuffer.length < CHUNK_MIN_SIZE) {
+    console.warn("Audio chunk too small. Padding buffer.");
+    const paddingSize = CHUNK_MIN_SIZE - audioBuffer.length;
+    const padding = Buffer.alloc(paddingSize, 0); // Zero-filled padding
+    audioBuffer = Buffer.concat([audioBuffer, padding]);
   }
 
+  // Too Large: Split into Manageable Chunks
+  if (audioBuffer.length > CHUNK_MAX_SIZE) {
+    console.warn("Audio chunk too large. Splitting buffer.");
+    const chunks = [];
+    for (let i = 0; i < audioBuffer.length; i += CHUNK_MAX_SIZE) {
+      chunks.push(audioBuffer.subarray(i, i + CHUNK_MAX_SIZE));
+    }
+    audioBuffer = chunks[0]; // Use first chunk for now
+  }
+
+  // Ensure Multiple of 320 Bytes
+  if (audioBuffer.length % CHUNK_MULTIPLE !== 0) {
+    console.warn("Chunk not multiple of 320 bytes. Adjusting.");
+    const remainder = audioBuffer.length % CHUNK_MULTIPLE;
+    const paddingSize = CHUNK_MULTIPLE - remainder;
+    const padding = Buffer.alloc(paddingSize, 0);
+    audioBuffer = Buffer.concat([audioBuffer, padding]);
+  }
+
+  console.log("Adjusted Audio chunk size:", audioBuffer.length);
   return audioBuffer;
 }
 
@@ -236,6 +251,8 @@ function setupWebSocket(server) {
           }
           const payload = data.media.payload;
           const chunk = Buffer.from(payload, 'base64');
+
+          await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
 
           audioData.push(chunk);
 
