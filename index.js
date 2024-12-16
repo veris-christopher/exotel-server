@@ -106,7 +106,7 @@ function handleResponseChunks(base64AudioChunk) {
     if (audioBuffer.length > CHUNK_MAX_SIZE) {
       const chunks = [];
       for (let i = 0; i < audioBuffer.length; i += CHUNK_MAX_SIZE) {
-        chunks.push(audioBuffer.slice(i, i + CHUNK_MAX_SIZE));
+        chunks.push(audioBuffer.subarray(i, i + CHUNK_MAX_SIZE));
       }
       audioBuffer = Buffer.concat(chunks);
     }
