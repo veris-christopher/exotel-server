@@ -44,7 +44,7 @@ async function handleMessage(ws, streamSid, messageStr) {
         console.log("Sending audio chunk to client WebSocket");
 
         // Split into smaller chunks and send with delay
-        const chunkSize = CHUNK_MIN_SIZE;
+        const chunkSize = CHUNK_MULTIPLE;
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
           const chunk = audioBuffer.subarray(i, Math.min(i + chunkSize, audioBuffer.length));
 
@@ -257,6 +257,7 @@ function setupWebSocket(server) {
         case 'media':
           if (!mediaConnected) {
             console.log("Media event received");
+            console.log("Media chunk size:", data.media.payload.length);
             mediaConnected = true;
           }
           const payload = data.media.payload;
