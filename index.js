@@ -219,7 +219,7 @@ function setupWebSocket(server) {
     let silenceTimer = null;
     const SILENCE_THRESHOLD = 2000; // 2 seconds of silence to trigger processing
     let mediaTimer = null;
-    const MEDIA_DURATION = 6000; // 6 seconds to capture media
+    const MEDIA_DURATION = 4000; // 4 seconds to capture media
 
     console.log("Initializing OpenAI WebSocket");
     const rws = openRealtimeWebSocket(ws, 'default-sid');
