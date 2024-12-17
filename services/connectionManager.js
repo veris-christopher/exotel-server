@@ -46,6 +46,33 @@ class ConnectionManager {
             console.error("❌ Client Connection Error:", error);
             this.cleanup(ws, state);
         });
+
+        // Reset or start media timer
+        if (state.mediaTimer) {
+            console.log("Clearing existing media timer");
+            clearTimeout(state.mediaTimer);
+        }
+
+        console.log("Setting new media timer for", this.CONSTANTS.MEDIA_DURATION, "ms");
+        state.mediaTimer = setTimeout(async () => {
+            try {
+                console.log("\n⏰ Media Timer Triggered");
+                console.log("Audio Data Length:", state.audioData.length);
+                
+                if (state.audioData.length > 0) {
+                    console.log("Processing accumulated audio...");
+                    await messageHandler.processAudioData(ws, state.rws, state.audioData);
+                    state.audioData = [];
+                    console.log("✅ Audio Processing Complete");
+                } else {
+                    console.log("No audio data to process");
+                }
+            } catch (error) {
+                console.error("Error in media timer callback:", error);
+            } finally {
+                state.mediaTimer = null;
+            }
+        }, this.CONSTANTS.MEDIA_DURATION);
     }
 
     async handleClientMessage(ws, state, message) {
@@ -76,13 +103,6 @@ class ConnectionManager {
                         console.log("Clearing media timer on stop");
                         clearTimeout(state.mediaTimer);
                         state.mediaTimer = null;
-                        
-                        // Process any remaining audio
-                        if (state.audioData.length > 0) {
-                            console.log("Processing remaining audio on stop");
-                            await messageHandler.processAudioData(ws, state.rws, state.audioData);
-                            state.audioData = [];
-                        }
                     }
                     break;
 
@@ -129,33 +149,6 @@ class ConnectionManager {
             state.audioData.push(chunk);
             console.log("Total Chunks:", state.audioData.length);
             console.log("Total Audio Data Size:", state.audioData.reduce((sum, chunk) => sum + chunk.length, 0), "bytes");
-
-            // Reset or start media timer
-            if (state.mediaTimer) {
-                console.log("Clearing existing media timer");
-                clearTimeout(state.mediaTimer);
-            }
-
-            console.log("Setting new media timer for", this.CONSTANTS.MEDIA_DURATION, "ms");
-            state.mediaTimer = setTimeout(async () => {
-                try {
-                    console.log("\n⏰ Media Timer Triggered");
-                    console.log("Audio Data Length:", state.audioData.length);
-                    
-                    if (state.audioData.length > 0) {
-                        console.log("Processing accumulated audio...");
-                        await messageHandler.processAudioData(ws, state.rws, state.audioData);
-                        state.audioData = [];
-                        console.log("✅ Audio Processing Complete");
-                    } else {
-                        console.log("No audio data to process");
-                    }
-                } catch (error) {
-                    console.error("Error in media timer callback:", error);
-                } finally {
-                    state.mediaTimer = null;
-                }
-            }, this.CONSTANTS.MEDIA_DURATION);
 
             // Add delay between chunks
             console.log("Adding chunk delay:", this.CONSTANTS.CHUNK_DELAY, "ms");
