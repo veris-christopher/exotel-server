@@ -32,9 +32,6 @@ async function handleMessage(ws, streamSid, messageStr) {
             payload: audioBuffer.toString('base64')
           }
         }));
-
-
-        console.log(`Base64 audio chunk written to ${filePath}`);
       } else {
         console.warn("WebSocket not open, cannot write audio");
       }
