@@ -20,6 +20,8 @@ wss.on('connection', async (clientWebSocket) => {
   try {
     realtimeWebSocket = await webSocketManager.openRealtimeWebSocket(clientWebSocket, 'default-sid');
 
+    let lastResponseId = null; // Track last response to avoid duplicates
+
     // Handle OpenAI messages
     realtimeWebSocket.on('message', async (message) => {
       try {
@@ -27,6 +29,13 @@ wss.on('connection', async (clientWebSocket) => {
         console.log("OpenAI message type:", data.type);
 
         if (data.type === "response.audio.delta") {
+          // Check if this is a duplicate response
+          if (data.response_id === lastResponseId) {
+            console.log("Skipping duplicate response");
+            return;
+          }
+          lastResponseId = data.response_id;
+
           const rawBuffer = Buffer.from(data.delta, 'base64');
           const optimizedBuffer = chunkOptimizer.optimizeOpenAIResponse(rawBuffer);
           
