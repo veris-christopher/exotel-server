@@ -5,9 +5,6 @@ const EventEmitter = require('events');
 EventEmitter.defaultMaxListeners = 15;
 const { Buffer } = require('buffer');
 
-const CHUNK_MIN_SIZE = 3200; // 3.2k bytes
-const CHUNK_MAX_SIZE = 100000; // 100k bytes
-const CHUNK_MULTIPLE = 320; // Must be a multiple of 320 bytes
 const CHUNK_DELAY = 250; // 250ms between processing chunks
 
 const app = express();
@@ -100,7 +97,6 @@ function handleResponseChunks(base64AudioChunk) {
   let audioBuffer = Buffer.from(base64AudioChunk, "base64");
   console.log("Original Audio chunk size:", audioBuffer.length);
 
-  // Sophisticated Chunk Management
   const adjustedBuffer = optimizeAudioChunk(audioBuffer);
 
   return adjustedBuffer;
@@ -251,7 +247,7 @@ function setupWebSocket(server) {
 
         case 'media':
           if (!mediaConnected) {
-            console.log("Media event received", message);
+            console.log("Media event received:", JSON.stringify(message, null, 2));
             mediaConnected = true;
           }
           const payload = data.media.payload;
