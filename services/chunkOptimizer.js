@@ -1,44 +1,51 @@
 const { AUDIO_CONFIG } = require('../config/constants');
 
 class ChunkOptimizer {
-  static optimize(audioBuffer) {
-    const strategies = {
-      PAD: (buffer, targetSize) => {
-        const padding = Buffer.alloc(targetSize - buffer.length, 0);
-        return Buffer.concat([buffer, padding]);
-      },
-      TRIM: (buffer, targetSize) => buffer.slice(0, targetSize),
-      ADJUST_TO_MULTIPLE: (buffer) => {
-        const remainder = buffer.length % AUDIO_CONFIG.CHUNK_MULTIPLE;
-        if (remainder === 0) return buffer;
-
-        const paddingSize = AUDIO_CONFIG.CHUNK_MULTIPLE - remainder;
-        const padding = Buffer.alloc(paddingSize, 0);
-        return Buffer.concat([buffer, padding]);
-      }
-    };
-
-    // Apply optimization strategies sequentially
-    let optimizedBuffer = audioBuffer;
-    
-    if (optimizedBuffer.length < AUDIO_CONFIG.CHUNK_MIN_SIZE) {
-      optimizedBuffer = strategies.PAD(optimizedBuffer, AUDIO_CONFIG.CHUNK_MIN_SIZE);
-    }
-
-    if (optimizedBuffer.length > AUDIO_CONFIG.CHUNK_MAX_SIZE) {
-      optimizedBuffer = strategies.TRIM(optimizedBuffer, AUDIO_CONFIG.CHUNK_MAX_SIZE);
-    }
-
-    optimizedBuffer = strategies.ADJUST_TO_MULTIPLE(optimizedBuffer);
-
-    return optimizedBuffer;
+  constructor() {
+    this.CHUNK_MIN_SIZE = 3200;   // 3.2 KB
+    this.CHUNK_MAX_SIZE = 100000; // 100 KB
+    this.CHUNK_MULTIPLE = 320;    // Must be multiple of 320 bytes
+    this.CHUNK_DELAY = 250;       // 250ms between processing chunks
   }
 
-  static calculateOptimalDelay(chunk) {
-    const baseDelay = 250; // Default delay in ms
-    const chunkSizeFactor = chunk.length / AUDIO_CONFIG.CHUNK_MIN_SIZE;
-    return Math.max(50, Math.min(baseDelay * chunkSizeFactor, 500));
+  optimizeChunk(audioBuffer) {
+    console.log("\n=== Optimizing Audio Chunk ===");
+    console.log("Original Audio chunk size:", audioBuffer.length);
+
+    // Too Small: Potential Audio Gaps
+    if (audioBuffer.length < this.CHUNK_MIN_SIZE) {
+      console.warn("Audio chunk too small. Padding buffer.");
+      const paddingSize = this.CHUNK_MIN_SIZE - audioBuffer.length;
+      const padding = Buffer.alloc(paddingSize, 0); // Zero-filled padding
+      audioBuffer = Buffer.concat([audioBuffer, padding]);
+    }
+
+    // Too Large: Split into Manageable Chunks
+    if (audioBuffer.length > this.CHUNK_MAX_SIZE) {
+      console.warn("Audio chunk too large. Splitting buffer.");
+      const chunks = [];
+      for (let i = 0; i < audioBuffer.length; i += this.CHUNK_MAX_SIZE) {
+        chunks.push(audioBuffer.subarray(i, i + this.CHUNK_MAX_SIZE));
+      }
+      audioBuffer = chunks[0]; // Use first chunk for now
+    }
+
+    // Ensure Multiple of 320 Bytes
+    if (audioBuffer.length % this.CHUNK_MULTIPLE !== 0) {
+      console.warn("Chunk not multiple of 320 bytes. Adjusting.");
+      const remainder = audioBuffer.length % this.CHUNK_MULTIPLE;
+      const paddingSize = this.CHUNK_MULTIPLE - remainder;
+      const padding = Buffer.alloc(paddingSize, 0);
+      audioBuffer = Buffer.concat([audioBuffer, padding]);
+    }
+
+    console.log("Adjusted Audio chunk size:", audioBuffer.length);
+    return audioBuffer;
+  }
+
+  getChunkDelay() {
+    return this.CHUNK_DELAY;
   }
 }
 
-module.exports = ChunkOptimizer;
+module.exports = new ChunkOptimizer();

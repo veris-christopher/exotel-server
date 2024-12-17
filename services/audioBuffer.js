@@ -1,44 +1,51 @@
-const { AUDIO_CONFIG } = require('../config/constants');
-const performanceTracker = require('../utils/performanceTracker');
+const WebSocket = require('ws');
 
 class AudioBuffer {
   constructor() {
     this.buffer = [];
     this.totalDuration = 0;
-    this.performanceTracker = performanceTracker;
   }
 
-  addChunk(chunk, estimatedDuration) {
-    // Intelligent buffer management
-    if (this.shouldFlushBuffer(estimatedDuration)) {
-      this.flush();
-    }
-
+  async processAudioChunk(chunk, streamSid) {
     this.buffer.push(chunk);
-    this.totalDuration += estimatedDuration;
-    this.performanceTracker.trackAudioChunk(chunk);
+    console.log("Added chunk to buffer. Current size:", this.buffer.length);
   }
 
-  shouldFlushBuffer(newChunkDuration) {
-    return this.totalDuration + newChunkDuration > AUDIO_CONFIG.MAX_BUFFER_DURATION;
-  }
+  async processAudioData(clientWebSocket, realtimeWebSocket, audioData) {
+    console.log("\n=== Processing Audio Data ===");
+    const audioBuffer = Buffer.concat(audioData);
+    console.log("Audio buffer size:", audioBuffer.length);
 
-  flush() {
-    if (this.buffer.length === 0) return null;
+    if (realtimeWebSocket.readyState === WebSocket.OPEN) {
+      console.log("Sending audio data to OpenAI");
+      realtimeWebSocket.send(JSON.stringify({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: "user",
+          content: [{
+            type: "input_audio",
+            data: audioBuffer.toString('base64')
+          }]
+        }
+      }));
+      console.log("Audio data sent to OpenAI");
 
-    const combinedBuffer = Buffer.concat(this.buffer);
-    this.performanceTracker.logBufferFlush(combinedBuffer);
+      const createResponseEvent = {
+        type: "response.create",
+        response: {
+          modalities: ["text", "audio"],
+          instructions: "Please assist the user."
+        }
+      };
 
-    // Reset buffer
-    this.buffer = [];
-    this.totalDuration = 0;
-
-    return combinedBuffer;
+      realtimeWebSocket.send(JSON.stringify(createResponseEvent));
+    } else {
+      console.warn("OpenAI WebSocket not open, cannot send audio data");
+    }
   }
 
   estimateChunkDuration(chunk) {
-    // Estimate duration based on chunk size and assumed sample rate
-    // This is a simplistic estimation and might need refinement
     const SAMPLE_RATE = 8000; // Hz
     const BYTES_PER_SAMPLE = 2; // 16-bit audio
     return (chunk.length / (SAMPLE_RATE * BYTES_PER_SAMPLE)) * 1000; // in milliseconds

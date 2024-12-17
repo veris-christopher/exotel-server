@@ -54,7 +54,79 @@ class WebSocketManager {
     }
   }
 
-  // Implement other methods for message handling, error management
+  async handleOpenAIMessage(message, clientWebSocket, streamSid) {
+    try {
+      console.log("\n=== Handling OpenAI Message ===");
+      console.log("Stream SID:", streamSid);
+
+      const data = JSON.parse(message);
+      console.log("Parsed message type:", data.type);
+
+      switch (data.type) {
+        case "response.audio.delta":
+          console.log("\n--- Received Audio Delta ---");
+          const audioBuffer = Buffer.from(data.delta, 'base64');
+          
+          if (clientWebSocket.readyState === WebSocket.OPEN) {
+            console.log("Sending audio chunk to client WebSocket");
+            clientWebSocket.send(JSON.stringify({
+              event: 'media',
+              stream_sid: streamSid,
+              media: {
+                payload: audioBuffer.toString('base64')
+              }
+            }));
+          } else {
+            console.warn("WebSocket not open, cannot write audio");
+          }
+          break;
+
+        case "response.audio.done":
+          console.log("\n--- Audio Response Complete ---");
+          break;
+
+        case "response.done":
+          console.log("\n--- Session Complete ---");
+          break;
+
+        case "session.created":
+          console.log("\n--- Session Created ---");
+          console.log("Session ID:", data.session.id);
+          break;
+
+        case "error":
+          console.error('🔴 OpenAI WebSocket Error:', data.error);
+          if (clientWebSocket.readyState === WebSocket.OPEN) {
+            clientWebSocket.send(JSON.stringify({ error: data.error }));
+          }
+          break;
+
+        default:
+          console.log("\n--- Unhandled Message Type ---");
+          console.log("Type:", data.type);
+      }
+    } catch (error) {
+      console.error('🔴 Error processing OpenAI message:', error);
+      if (clientWebSocket.readyState === WebSocket.OPEN) {
+        clientWebSocket.send(JSON.stringify({ error: 'Error processing message' }));
+      }
+    }
+  }
+
+  handleWebSocketError(clientWebSocket, error) {
+    console.error('🔴 WebSocket Error:', error);
+    if (clientWebSocket.readyState === WebSocket.OPEN) {
+      clientWebSocket.send(JSON.stringify({ error: 'WebSocket connection error' }));
+    }
+  }
+
+  handleWebSocketClose(code, reason) {
+    console.log(`🔌 WebSocket Closed. Code: ${code}, Reason: ${reason || 'No reason provided'}`);
+    // Reset reconnect attempts on normal closure
+    if (code === 1000) {
+      this.reconnectAttempts = 0;
+    }
+  }
 }
 
 module.exports = new WebSocketManager();

@@ -11,8 +11,14 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 wss.on('connection', async (clientWebSocket) => {
-  let realtimeWebSocket;
+  console.log("\n=== New Connection Accepted ===");
   
+  let audioData = [];
+  let messageDelivered = false;
+  let mediaTimer = null;
+  const MEDIA_DURATION = 6000; // 6 seconds to capture media
+
+  let realtimeWebSocket;
   try {
     realtimeWebSocket = await webSocketManager.openRealtimeWebSocket(clientWebSocket, 'default-sid');
   } catch (error) {
@@ -21,21 +27,82 @@ wss.on('connection', async (clientWebSocket) => {
     return;
   }
 
+  const cleanup = () => {
+    console.log("\n=== Cleaning up Connection ===");
+    if (mediaTimer) {
+      clearTimeout(mediaTimer);
+    }
+    if (realtimeWebSocket) {
+      console.log("Closing OpenAI WebSocket");
+      realtimeWebSocket.close();
+    }
+  };
+
+  const processSpeech = async () => {
+    console.log("\n=== Processing Speech ===");
+    if (audioData.length > 0 && !messageDelivered) {
+      console.log("Processing collected audio data");
+      messageDelivered = true;
+      await audioBuffer.processAudioData(clientWebSocket, realtimeWebSocket, audioData);
+      audioData = [];
+      messageDelivered = false;
+      console.log("Audio buffer cleared");
+    }
+  };
+
+  let mediaConnected = false;
+
   clientWebSocket.on('message', async (message) => {
     const data = JSON.parse(message);
     
     switch (data.event) {
-      case 'media':
-        const chunk = Buffer.from(data.media.payload, 'base64');
-        const optimizedChunk = chunkOptimizer.optimize(chunk);
-        const delay = chunkOptimizer.calculateOptimalDelay(optimizedChunk);
-        
-        await new Promise(resolve => setTimeout(resolve, delay));
-        
-        const estimatedDuration = audioBuffer.estimateChunkDuration(optimizedChunk);
-        audioBuffer.addChunk(optimizedChunk, estimatedDuration);
+      case 'start':
+        console.log("Start event received");
         break;
+
+      case 'media':
+        if (!mediaConnected) {
+          console.log("Media event received");
+          mediaConnected = true;
+        }
+        
+        const chunk = Buffer.from(data.media.payload, 'base64');
+        const optimizedChunk = chunkOptimizer.optimizeChunk(chunk);
+        
+        await new Promise(resolve => setTimeout(resolve, chunkOptimizer.getChunkDelay()));
+        
+        audioData.push(optimizedChunk);
+
+        // Start a timer to process audio after 6 seconds
+        if (!mediaTimer) {
+          mediaTimer = setTimeout(async () => {
+            console.log("6 seconds elapsed, processing audio");
+            await processSpeech();
+          }, MEDIA_DURATION);
+        }
+        break;
+
+      case 'stop':
+        console.log("Stop event received");
+        if (mediaTimer) {
+          clearTimeout(mediaTimer);
+        }
+        break;
+
+      default:
+        console.log("Unhandled event type:", data.event);
     }
+  });
+
+  clientWebSocket.on('close', () => {
+    console.log("\n=== Client Connection Closed ===");
+    cleanup();
+  });
+
+  clientWebSocket.on('error', (error) => {
+    console.error("\n=== Client Connection Error ===");
+    console.error("Error details:", error);
+    cleanup();
   });
 });
 
