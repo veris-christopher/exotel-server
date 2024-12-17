@@ -94,15 +94,36 @@ async function processAudioData(ws, rws, audioData) {
   }
 }
 
+function downsampleTo8k(buffer) {
+  // Input: 24kHz PCM16 buffer
+  // Output: 8kHz PCM16 buffer
+  // Ratio: 24000/8000 = 3 (we'll take every 3rd sample)
+  
+  const inputSamples = buffer.length / 2; // 2 bytes per sample
+  const outputSamples = Math.floor(inputSamples / 3);
+  const outputBuffer = Buffer.alloc(outputSamples * 2);
+
+  for (let i = 0; i < outputSamples; i++) {
+    // Read sample from input (every 3rd sample)
+    const inputIndex = i * 3 * 2; // *2 because 2 bytes per sample
+    const sample = buffer.readInt16LE(inputIndex);
+    
+    // Write to output
+    outputBuffer.writeInt16LE(sample, i * 2);
+  }
+
+  return outputBuffer;
+}
+
 function handleResponseChunks(base64AudioChunk) {
   console.log("\n=== Handling Response Chunks ===");
 
   let audioBuffer = Buffer.from(base64AudioChunk, "base64");
-  console.log("Original Audio chunk size:", audioBuffer.length);
+  console.log("Original Audio chunk size (24kHz):", audioBuffer.length);
 
-  const fs = require('fs');
-  const filePath = 'audioChunk.txt';
-  fs.writeFileSync(filePath, audioBuffer.toString('base64'));
+  // Downsample from 24kHz to 8kHz
+  audioBuffer = downsampleTo8k(audioBuffer);
+  console.log("Downsampled Audio chunk size (8kHz):", audioBuffer.length);
 
   const adjustedBuffer = optimizeAudioChunk(audioBuffer);
 
