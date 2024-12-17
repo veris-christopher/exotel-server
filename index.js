@@ -247,7 +247,7 @@ function setupWebSocket(server) {
 
         case 'media':
           if (!mediaConnected) {
-            console.log("Media event received:", JSON.stringify(message, null, 2));
+            console.log("Media event received:", JSON.stringify(data));
             mediaConnected = true;
           }
           const payload = data.media.payload;
