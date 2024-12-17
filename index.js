@@ -14,39 +14,7 @@ wss.on('connection', async (clientWebSocket) => {
   console.log("\n=== New Connection Accepted ===");
   
   let mediaTimer = null;
-  let chunkQueue = [];
-  let processingChunk = false;
-
-  const processNextChunk = async () => {
-    if (processingChunk || chunkQueue.length === 0) return;
-    
-    processingChunk = true;
-    const chunk = chunkQueue[0];
-    const now = Date.now();
-    
-    if (now >= chunk.timestamp) {
-      if (clientWebSocket.readyState === WebSocket.OPEN) {
-        clientWebSocket.send(JSON.stringify({
-          event: 'media',
-          stream_sid: 'default-sid',
-          media: {
-            payload: chunk.data.toString('base64')
-          }
-        }));
-      }
-      chunkQueue.shift();
-      processingChunk = false;
-      
-      // Process next chunk after duration
-      if (chunkQueue.length > 0) {
-        setTimeout(processNextChunk, chunkQueue[0].duration);
-      }
-    } else {
-      // Wait until it's time to process this chunk
-      setTimeout(processNextChunk, chunk.timestamp - now);
-      processingChunk = false;
-    }
-  };
+  const MEDIA_DURATION = 6000; // 6 seconds to capture media
 
   let realtimeWebSocket;
   try {
@@ -60,22 +28,16 @@ wss.on('connection', async (clientWebSocket) => {
 
         if (data.type === "response.audio.delta") {
           const rawBuffer = Buffer.from(data.delta, 'base64');
-          const optimizedChunks = chunkOptimizer.optimizeOpenAIResponse(rawBuffer);
+          const optimizedBuffer = chunkOptimizer.optimizeOpenAIResponse(rawBuffer);
           
-          // Add chunks to queue with proper timing
-          let nextTimestamp = Date.now();
-          optimizedChunks.forEach(chunk => {
-            chunkQueue.push({
-              data: chunk.data,
-              timestamp: nextTimestamp,
-              duration: chunk.duration
-            });
-            nextTimestamp += chunk.duration;
-          });
-
-          // Start processing if not already started
-          if (!processingChunk) {
-            processNextChunk();
+          if (clientWebSocket.readyState === WebSocket.OPEN) {
+            clientWebSocket.send(JSON.stringify({
+              event: 'media',
+              stream_sid: 'default-sid',
+              media: {
+                payload: optimizedBuffer.toString('base64')
+              }
+            }));
           }
         }
       } catch (error) {
@@ -98,8 +60,6 @@ wss.on('connection', async (clientWebSocket) => {
       console.log("Closing OpenAI WebSocket");
       realtimeWebSocket.close();
     }
-    chunkQueue = [];
-    processingChunk = false;
   };
 
   let mediaConnected = false;
@@ -117,10 +77,11 @@ wss.on('connection', async (clientWebSocket) => {
           console.log("Media event received, starting audio collection");
           mediaConnected = true;
           
-          // Start periodic processing of collected audio
-          mediaTimer = setInterval(async () => {
+          // Start timer to send collected audio to OpenAI after 6 seconds
+          mediaTimer = setTimeout(async () => {
+            console.log("6 seconds elapsed, sending audio to OpenAI");
             await audioBuffer.sendToOpenAI(realtimeWebSocket);
-          }, 2000); // Process every 2 seconds
+          }, MEDIA_DURATION);
         }
         
         const chunk = Buffer.from(data.media.payload, 'base64');
@@ -130,7 +91,7 @@ wss.on('connection', async (clientWebSocket) => {
       case 'stop':
         console.log("Stop event received");
         if (mediaTimer) {
-          clearInterval(mediaTimer);
+          clearTimeout(mediaTimer);
           // Send any remaining audio
           await audioBuffer.sendToOpenAI(realtimeWebSocket);
         }
