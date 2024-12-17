@@ -3,17 +3,21 @@ const WebSocket = require('ws');
 class AudioBuffer {
   constructor() {
     this.buffer = [];
-    this.totalDuration = 0;
   }
 
-  async processAudioChunk(chunk, streamSid) {
+  collectAudioChunk(chunk) {
     this.buffer.push(chunk);
     console.log("Added chunk to buffer. Current size:", this.buffer.length);
   }
 
-  async processAudioData(clientWebSocket, realtimeWebSocket, audioData) {
+  async sendToOpenAI(realtimeWebSocket) {
+    if (this.buffer.length === 0) {
+      console.log("No audio data to send");
+      return;
+    }
+
     console.log("\n=== Processing Audio Data ===");
-    const audioBuffer = Buffer.concat(audioData);
+    const audioBuffer = Buffer.concat(this.buffer);
     console.log("Audio buffer size:", audioBuffer.length);
 
     if (realtimeWebSocket.readyState === WebSocket.OPEN) {
@@ -40,15 +44,12 @@ class AudioBuffer {
       };
 
       realtimeWebSocket.send(JSON.stringify(createResponseEvent));
+      
+      // Clear buffer after sending
+      this.buffer = [];
     } else {
       console.warn("OpenAI WebSocket not open, cannot send audio data");
     }
-  }
-
-  estimateChunkDuration(chunk) {
-    const SAMPLE_RATE = 8000; // Hz
-    const BYTES_PER_SAMPLE = 2; // 16-bit audio
-    return (chunk.length / (SAMPLE_RATE * BYTES_PER_SAMPLE)) * 1000; // in milliseconds
   }
 }
 

@@ -5,11 +5,10 @@ class ChunkOptimizer {
     this.CHUNK_MIN_SIZE = 3200;   // 3.2 KB
     this.CHUNK_MAX_SIZE = 100000; // 100 KB
     this.CHUNK_MULTIPLE = 320;    // Must be multiple of 320 bytes
-    this.CHUNK_DELAY = 250;       // 250ms between processing chunks
   }
 
-  optimizeChunk(audioBuffer) {
-    console.log("\n=== Optimizing Audio Chunk ===");
+  optimizeOpenAIResponse(audioBuffer) {
+    console.log("\n=== Optimizing OpenAI Audio Response ===");
     console.log("Original Audio chunk size:", audioBuffer.length);
 
     // Too Small: Potential Audio Gaps
@@ -41,10 +40,6 @@ class ChunkOptimizer {
 
     console.log("Adjusted Audio chunk size:", audioBuffer.length);
     return audioBuffer;
-  }
-
-  getChunkDelay() {
-    return this.CHUNK_DELAY;
   }
 }
 
