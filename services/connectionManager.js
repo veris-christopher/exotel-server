@@ -50,12 +50,19 @@ class ConnectionManager {
 
     async handleClientMessage(ws, state, message) {
         try {
+            console.log("\n=== Raw Message ===");
+            console.log(message.toString());
+            
             const data = JSON.parse(message);
             const streamSid = data.stream_sid || this.CONSTANTS.DEFAULT_STREAM_SID;
 
             console.log("\n📨 Client Message");
             console.log("Event Type:", data.event);
             console.log("Stream SID:", streamSid);
+            if (data.media) {
+                console.log("Has Media Payload:", !!data.media.payload);
+                console.log("Media Payload Length:", data.media.payload ? data.media.payload.length : 0);
+            }
 
             switch (data.event) {
                 case 'media':
@@ -97,48 +104,67 @@ class ConnectionManager {
             }
         } catch (error) {
             console.error("Error handling client message:", error);
+            console.error("Raw message:", message.toString());
         }
     }
 
     async handleMediaEvent(ws, state, data) {
-        console.log("\n🎵 Handling Media Event");
-        const chunk = Buffer.from(data.media.payload, 'base64');
-        console.log("Chunk Size:", chunk.length, "bytes");
-        
-        state.audioData.push(chunk);
-        console.log("Total Chunks:", state.audioData.length);
-
-        // Reset or start media timer
-        if (state.mediaTimer) {
-            console.log("Clearing existing media timer");
-            clearTimeout(state.mediaTimer);
-        }
-
-        console.log("Setting new media timer for", this.CONSTANTS.MEDIA_DURATION, "ms");
-        state.mediaTimer = setTimeout(async () => {
-            try {
-                console.log("\n⏰ Media Timer Triggered");
-                console.log("Audio Data Length:", state.audioData.length);
-                
-                if (state.audioData.length > 0) {
-                    console.log("Processing accumulated audio...");
-                    await messageHandler.processAudioData(ws, state.rws, state.audioData);
-                    state.audioData = [];
-                    console.log("✅ Audio Processing Complete");
-                } else {
-                    console.log("No audio data to process");
-                }
-            } catch (error) {
-                console.error("Error in media timer callback:", error);
-            } finally {
-                state.mediaTimer = null;
+        try {
+            console.log("\n🎵 Handling Media Event");
+            
+            if (!data.media || !data.media.payload) {
+                console.warn("⚠️ Invalid media data received");
+                console.log("Data:", JSON.stringify(data));
+                return;
             }
-        }, this.CONSTANTS.MEDIA_DURATION);
 
-        // Add delay between chunks
-        console.log("Adding chunk delay:", this.CONSTANTS.CHUNK_DELAY, "ms");
-        await new Promise(resolve => setTimeout(resolve, this.CONSTANTS.CHUNK_DELAY));
-        console.log("Chunk processing complete");
+            const chunk = Buffer.from(data.media.payload, 'base64');
+            console.log("Chunk Size:", chunk.length, "bytes");
+            
+            if (chunk.length === 0) {
+                console.warn("⚠️ Empty audio chunk received");
+                return;
+            }
+
+            state.audioData.push(chunk);
+            console.log("Total Chunks:", state.audioData.length);
+            console.log("Total Audio Data Size:", state.audioData.reduce((sum, chunk) => sum + chunk.length, 0), "bytes");
+
+            // Reset or start media timer
+            if (state.mediaTimer) {
+                console.log("Clearing existing media timer");
+                clearTimeout(state.mediaTimer);
+            }
+
+            console.log("Setting new media timer for", this.CONSTANTS.MEDIA_DURATION, "ms");
+            state.mediaTimer = setTimeout(async () => {
+                try {
+                    console.log("\n⏰ Media Timer Triggered");
+                    console.log("Audio Data Length:", state.audioData.length);
+                    
+                    if (state.audioData.length > 0) {
+                        console.log("Processing accumulated audio...");
+                        await messageHandler.processAudioData(ws, state.rws, state.audioData);
+                        state.audioData = [];
+                        console.log("✅ Audio Processing Complete");
+                    } else {
+                        console.log("No audio data to process");
+                    }
+                } catch (error) {
+                    console.error("Error in media timer callback:", error);
+                } finally {
+                    state.mediaTimer = null;
+                }
+            }, this.CONSTANTS.MEDIA_DURATION);
+
+            // Add delay between chunks
+            console.log("Adding chunk delay:", this.CONSTANTS.CHUNK_DELAY, "ms");
+            await new Promise(resolve => setTimeout(resolve, this.CONSTANTS.CHUNK_DELAY));
+            console.log("Chunk processing complete");
+        } catch (error) {
+            console.error("Error handling media event:", error);
+            console.error("Data:", JSON.stringify(data));
+        }
     }
 
     async openRealtimeWebSocket(ws) {
