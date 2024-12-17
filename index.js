@@ -18,7 +18,7 @@ async function handleMessage(ws, streamSid, messageStr) {
 
   const message = JSON.parse(messageStr);
   console.log("Parsed message type:", message.type);
-  console.log("Full message:", message);
+  console.log("Full message:", message.toString());
 
   switch (message.type) {
     case "response.audio.delta":
