@@ -46,40 +46,13 @@ class ConnectionManager {
             console.error("❌ Client Connection Error:", error);
             this.cleanup(ws, state);
         });
-
-        // Reset or start media timer
-        if (state.mediaTimer) {
-            console.log("Clearing existing media timer");
-            clearTimeout(state.mediaTimer);
-        }
-
-        console.log("Setting new media timer for", this.CONSTANTS.MEDIA_DURATION, "ms");
-        state.mediaTimer = setTimeout(async () => {
-            try {
-                console.log("\n⏰ Media Timer Triggered");
-                console.log("Audio Data Length:", state.audioData.length);
-                
-                if (state.audioData.length > 0) {
-                    console.log("Processing accumulated audio...");
-                    await messageHandler.processAudioData(ws, state.rws, state.audioData);
-                    state.audioData = [];
-                    console.log("✅ Audio Processing Complete");
-                } else {
-                    console.log("No audio data to process");
-                }
-            } catch (error) {
-                console.error("Error in media timer callback:", error);
-            } finally {
-                state.mediaTimer = null;
-            }
-        }, this.CONSTANTS.MEDIA_DURATION);
     }
 
     async handleClientMessage(ws, state, message) {
         try {
             console.log("\n=== Raw Message ===");
             console.log(message.toString());
-            
+
             const data = JSON.parse(message);
             const streamSid = data.stream_sid || this.CONSTANTS.DEFAULT_STREAM_SID;
 
@@ -93,7 +66,6 @@ class ConnectionManager {
 
             switch (data.event) {
                 case 'media':
-                    console.log("🎵 Received Media Event");
                     await this.handleMediaEvent(ws, state, data);
                     break;
 
@@ -134,29 +106,42 @@ class ConnectionManager {
             
             if (!data.media || !data.media.payload) {
                 console.warn("⚠️ Invalid media data received");
-                console.log("Data:", JSON.stringify(data));
                 return;
             }
 
             const chunk = Buffer.from(data.media.payload, 'base64');
             console.log("Chunk Size:", chunk.length, "bytes");
             
-            if (chunk.length === 0) {
-                console.warn("⚠️ Empty audio chunk received");
-                return;
-            }
-
             state.audioData.push(chunk);
-            console.log("Total Chunks:", state.audioData.length);
             console.log("Total Audio Data Size:", state.audioData.reduce((sum, chunk) => sum + chunk.length, 0), "bytes");
 
+            // Only set up the timer if it doesn't exist
+            if (!state.mediaTimer) {
+                console.log("Starting new media timer for", this.CONSTANTS.MEDIA_DURATION, "ms");
+                state.mediaTimer = setTimeout(async () => {
+                    try {
+                        console.log("\n⏰ Media Timer Triggered");
+                        console.log("Processing", state.audioData.length, "chunks,", 
+                            state.audioData.reduce((sum, chunk) => sum + chunk.length, 0), "total bytes");
+                        
+                        if (state.audioData.length > 0) {
+                            await messageHandler.processAudioData(ws, state.rws, state.audioData);
+                            state.audioData = [];
+                            console.log("✅ Audio Processing Complete");
+                        }
+                    } catch (error) {
+                        console.error("❌ Error in media timer callback:", error);
+                    } finally {
+                        state.mediaTimer = null;
+                    }
+                }, this.CONSTANTS.MEDIA_DURATION);
+            }
+
             // Add delay between chunks
-            console.log("Adding chunk delay:", this.CONSTANTS.CHUNK_DELAY, "ms");
             await new Promise(resolve => setTimeout(resolve, this.CONSTANTS.CHUNK_DELAY));
-            console.log("Chunk processing complete");
         } catch (error) {
-            console.error("Error handling media event:", error);
-            console.error("Data:", JSON.stringify(data));
+            console.error("❌ Error handling media event:", error);
+            throw error;
         }
     }
 
@@ -196,13 +181,13 @@ class ConnectionManager {
         process.on('SIGINT', () => {
             console.log("\n⚠️ Server Shutdown Initiated");
             console.log("Active Connections:", this.connections.size);
-            
+
             for (let ws of this.connections) {
                 ws.close();
             }
             this.connections.clear();
             wss.close();
-            
+
             console.log("✅ Server Shutdown Complete");
             process.exit();
         });
