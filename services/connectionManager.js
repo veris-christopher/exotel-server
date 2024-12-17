@@ -56,20 +56,6 @@ class ConnectionManager {
         console.log("Event Type:", data.event);
         console.log("Stream SID:", streamSid);
 
-        // Reset or start media timer
-        if (state.mediaTimer) {
-            clearTimeout(state.mediaTimer);
-        }
-
-        state.mediaTimer = setTimeout(async () => {
-            console.log("\n⏰ Media Duration Elapsed");
-            console.log("Processing accumulated audio...");
-            await messageHandler.processAudioData(ws, state.rws, state.audioData);
-            state.audioData = [];
-            state.mediaTimer = null;
-            console.log("✅ Audio Processing Complete");
-        }, this.CONSTANTS.MEDIA_DURATION);
-
         switch (data.event) {
             case 'media':
                 await this.handleMediaEvent(ws, state, data);
@@ -103,6 +89,20 @@ class ConnectionManager {
         
         state.audioData.push(chunk);
         console.log("Total Chunks:", state.audioData.length);
+
+        // Reset or start media timer
+        if (state.mediaTimer) {
+            clearTimeout(state.mediaTimer);
+        }
+
+        state.mediaTimer = setTimeout(async () => {
+            console.log("\n⏰ Media Duration Elapsed");
+            console.log("Processing accumulated audio...");
+            await messageHandler.processAudioData(ws, state.rws, state.audioData);
+            state.audioData = [];
+            state.mediaTimer = null;
+            console.log("✅ Audio Processing Complete");
+        }, this.CONSTANTS.MEDIA_DURATION);
 
         // Add delay between chunks
         await new Promise(resolve => setTimeout(resolve, this.CONSTANTS.CHUNK_DELAY));
