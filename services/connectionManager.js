@@ -103,6 +103,9 @@ class ConnectionManager {
         
         state.audioData.push(chunk);
         console.log("Total Chunks:", state.audioData.length);
+
+        // Add delay between chunks
+        await new Promise(resolve => setTimeout(resolve, this.CONSTANTS.CHUNK_DELAY));
     }
 
     async openRealtimeWebSocket(ws) {
