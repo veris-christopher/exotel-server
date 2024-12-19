@@ -52,7 +52,7 @@ class ConnectionManager {
     async handleClientMessage(ws, state, message) {
         try {
             // console.log("\n=== Raw Message ===");
-            console.log(message.toString());
+            // console.log(message.toString());
 
             const data = JSON.parse(message);
             const streamSid = data.stream_sid || this.CONSTANTS.DEFAULT_STREAM_SID;
@@ -127,7 +127,7 @@ class ConnectionManager {
 
             // Send chunks to VAD system immediately
             if (state.rws && state.rws.readyState === WebSocket.OPEN) {
-                await messageHandler.processAudioData(ws, state.rws, [chunk]);
+                await messageHandler.processAudioData(ws, state.rws, chunk);
             }
         } catch (error) {
             console.error("❌ Error handling media event:", error);

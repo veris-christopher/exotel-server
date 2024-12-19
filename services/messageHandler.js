@@ -94,16 +94,13 @@ class MessageHandler {
   }
 
   async processAudioData(ws, rws, audioData) {
-    // console.log("\n🎤 Processing Input Audio");
-    const audioBuffer = Buffer.concat(audioData);
-
     if (rws.readyState === WebSocket.OPEN) {
       // console.log("📤 Sending audio to OpenAI");
 
       // Send audio to input buffer for VAD processing
       rws.send(JSON.stringify({
         type: "input_audio_buffer.append",
-        audio: audioBuffer.toString('base64')
+        audio: audioData.toString('base64')
       }));
     } else {
       console.warn("⚠️ OpenAI WebSocket not open");
