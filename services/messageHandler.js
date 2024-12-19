@@ -56,7 +56,8 @@ class MessageHandler {
                 event: this.EVENTS.MEDIA,
                 stream_sid: streamSid,
                 media: {
-                    payload: processedBuffer.toString('base64')
+                    payload: processedBuffer.toString('base64'),
+                    source: 'ai'
                 }
             }));
             console.log("✅ Audio sent to client");
@@ -73,30 +74,13 @@ class MessageHandler {
         if (rws.readyState === WebSocket.OPEN) {
             console.log("📤 Sending audio to OpenAI");
             
-            // Send audio data
+            // Send audio to input buffer for VAD processing
             rws.send(JSON.stringify({
-                type: "conversation.item.create",
-                item: {
-                    type: "message",
-                    role: "user",
-                    content: [{
-                        type: "input_audio",
-                        data: audioBuffer.toString('base64')
-                    }]
-                }
+                event_id: `event_${Date.now()}`,
+                type: "input_audio_buffer.append",
+                audio: audioBuffer.toString('base64')
             }));
-            console.log("✅ Audio sent to OpenAI");
-
-            // Request response
-            console.log("📤 Requesting OpenAI response");
-            rws.send(JSON.stringify({
-                type: "response.create",
-                response: {
-                    modalities: ["text", "audio"],
-                    instructions: "Please assist the user."
-                }
-            }));
-            console.log("✅ Response requested from OpenAI");
+            console.log("✅ Audio sent to OpenAI VAD system");
         } else {
             console.warn("⚠️ OpenAI WebSocket not open");
         }

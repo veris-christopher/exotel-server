@@ -116,32 +116,19 @@ class ConnectionManager {
                 return;
             }
 
+            // Skip processing if this is an AI response
+            if (data.media.source === 'ai') {
+                console.log("🤖 Skipping AI response audio");
+                return;
+            }
+
             const chunk = Buffer.from(data.media.payload, 'base64');
             state.audioData.push(chunk);
 
-            // Only set up the timer if it doesn't exist
-            if (!state.mediaTimer) {
-                state.mediaTimer = setTimeout(async () => {
-                    try {
-                        console.log("\n⏰ Processing Audio Batch:");
-                        console.log(`- ${state.audioData.length} chunks collected`);
-                        console.log(`- ${state.audioData.reduce((sum, chunk) => sum + chunk.length, 0)} total bytes`);
-                        
-                        if (state.audioData.length > 0) {
-                            await messageHandler.processAudioData(ws, state.rws, state.audioData);
-                            state.audioData = [];
-                            console.log("✅ Audio Processing Complete");
-                        }
-                    } catch (error) {
-                        console.error("❌ Error processing audio batch:", error);
-                    } finally {
-                        state.mediaTimer = null;
-                    }
-                }, this.CONSTANTS.MEDIA_DURATION);
+            // Send chunks to VAD system immediately
+            if (state.rws && state.rws.readyState === WebSocket.OPEN) {
+                await messageHandler.processAudioData(ws, state.rws, [chunk]);
             }
-
-            // Add delay between chunks
-            await new Promise(resolve => setTimeout(resolve, this.CONSTANTS.CHUNK_DELAY));
         } catch (error) {
             console.error("❌ Error handling media event:", error);
             throw error;
