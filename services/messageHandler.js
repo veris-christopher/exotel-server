@@ -31,11 +31,15 @@ class MessageHandler {
                 break;
 
             case "response.done":
-                console.log("🏁 Session Complete");
+                console.log("🏁 Response Complete");
                 break;
 
             case "session.created":
                 console.log("🆕 Session Created:", message.session.id);
+                break;
+
+            case "session.updated":
+                console.log("🆕 Session Updated");
                 break;
 
             case "input_audio_buffer.speech_started":
@@ -58,7 +62,7 @@ class MessageHandler {
     async handleAudioDelta(ws, streamSid, message) {
         console.log("\n🎵 Processing Audio Delta");
         console.log("Stream SID:", streamSid);
-        
+
         const processedBuffer = audioProcessor.processOpenAIResponse(message.delta);
         console.log("Processed Buffer Size:", processedBuffer.length, "bytes");
 
@@ -79,12 +83,12 @@ class MessageHandler {
     }
 
     async processAudioData(ws, rws, audioData) {
-        console.log("\n🎤 Processing Input Audio");
+        // console.log("\n🎤 Processing Input Audio");
         const audioBuffer = Buffer.concat(audioData);
 
         if (rws.readyState === WebSocket.OPEN) {
-            console.log("📤 Sending audio to OpenAI");
-            
+            // console.log("📤 Sending audio to OpenAI");
+
             // Send audio to input buffer for VAD processing
             rws.send(JSON.stringify({
                 type: "input_audio_buffer.append",
