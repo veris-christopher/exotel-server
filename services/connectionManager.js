@@ -31,7 +31,8 @@ class ConnectionManager {
         const state = {
             audioData: [],
             mediaTimer: null,
-            rws: await this.openRealtimeWebSocket(ws)
+            rws: await this.openRealtimeWebSocket(ws),
+            hasReceivedFirstMedia: false
         };
 
         this.setupConnectionHandlers(ws, state);
@@ -100,9 +101,15 @@ class ConnectionManager {
         }
     }
 
+    static hasReceivedFirstMedia = false;
+
     async handleMediaEvent(ws, state, data) {
         try {
-            console.log("\n🎵 Handling Media Event");
+            // Only log the first media event globally
+            if (!ConnectionManager.hasReceivedFirstMedia) {
+                console.log("\n🎵 First Media Event Received - Audio streaming is working");
+                ConnectionManager.hasReceivedFirstMedia = true;
+            }
             
             if (!data.media || !data.media.payload) {
                 console.warn("⚠️ Invalid media data received");
@@ -110,19 +117,15 @@ class ConnectionManager {
             }
 
             const chunk = Buffer.from(data.media.payload, 'base64');
-            console.log("Chunk Size:", chunk.length, "bytes");
-            
             state.audioData.push(chunk);
-            console.log("Total Audio Data Size:", state.audioData.reduce((sum, chunk) => sum + chunk.length, 0), "bytes");
 
             // Only set up the timer if it doesn't exist
             if (!state.mediaTimer) {
-                console.log("Starting new media timer for", this.CONSTANTS.MEDIA_DURATION, "ms");
                 state.mediaTimer = setTimeout(async () => {
                     try {
-                        console.log("\n⏰ Media Timer Triggered");
-                        console.log("Processing", state.audioData.length, "chunks,", 
-                            state.audioData.reduce((sum, chunk) => sum + chunk.length, 0), "total bytes");
+                        console.log("\n⏰ Processing Audio Batch:");
+                        console.log(`- ${state.audioData.length} chunks collected`);
+                        console.log(`- ${state.audioData.reduce((sum, chunk) => sum + chunk.length, 0)} total bytes`);
                         
                         if (state.audioData.length > 0) {
                             await messageHandler.processAudioData(ws, state.rws, state.audioData);
@@ -130,7 +133,7 @@ class ConnectionManager {
                             console.log("✅ Audio Processing Complete");
                         }
                     } catch (error) {
-                        console.error("❌ Error in media timer callback:", error);
+                        console.error("❌ Error processing audio batch:", error);
                     } finally {
                         state.mediaTimer = null;
                     }

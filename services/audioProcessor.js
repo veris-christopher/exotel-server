@@ -15,10 +15,6 @@ class AudioProcessor {
         const downsampleRatio = this.SAMPLE_RATE.INPUT / this.SAMPLE_RATE.OUTPUT;
         const inputSamples = buffer.length / this.BYTES_PER_SAMPLE;
         const outputSamples = Math.floor(inputSamples / downsampleRatio);
-        
-        console.log("Downsample Ratio:", downsampleRatio);
-        console.log("Input Samples:", inputSamples);
-        console.log("Output Samples:", outputSamples);
 
         const outputBuffer = Buffer.alloc(outputSamples * this.BYTES_PER_SAMPLE);
 
