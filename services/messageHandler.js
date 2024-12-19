@@ -133,16 +133,26 @@ class MessageHandler {
   }
 
   async processAudioData(ws, rws, audioData) {
-    if (rws.readyState === WebSocket.OPEN) {
-      // console.log("📤 Sending audio to OpenAI");
+    try {
+      if (rws.readyState === WebSocket.OPEN) {
+        console.log("\n📤 Sending audio chunk to OpenAI");
+        console.log("Audio chunk size:", audioData.length, "bytes");
 
-      // Send audio to input buffer for VAD processing
-      rws.send(JSON.stringify({
-        type: "input_audio_buffer.append",
-        audio: audioData.toString('base64')
-      }));
-    } else {
-      console.warn("⚠️ OpenAI WebSocket not open");
+        // Send audio to input buffer for VAD processing
+        const message = {
+          type: "input_audio_buffer.append",
+          audio: audioData.toString('base64')
+        };
+        
+        rws.send(JSON.stringify(message));
+        console.log("✅ Audio chunk sent to OpenAI");
+      } else {
+        console.warn("⚠️ OpenAI WebSocket not open, state:", rws.readyState);
+      }
+    } catch (error) {
+      console.error("❌ Error sending audio data:", error);
+      console.error("Audio data size:", audioData.length);
+      throw error;
     }
   }
 }
