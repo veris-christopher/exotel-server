@@ -30,6 +30,7 @@ const VOICE = 'alloy';
 // List of Event Types to log to the console. See the OpenAI Realtime API Documentation: https://platform.openai.com/docs/api-reference/realtime
 const LOG_EVENT_TYPES = [
   'error',
+  'response.audio.delta',
   'response.content.done',
   'rate_limits.updated',
   'response.done',
@@ -37,12 +38,11 @@ const LOG_EVENT_TYPES = [
   'input_audio_buffer.speech_stopped',
   'input_audio_buffer.speech_started',
   'session.created',
-  'session.updated',
-  'input_audio_buffer.append'
+  'session.updated'
 ];
 
 // Show AI response elapsed timing calculations
-const SHOW_TIMING_MATH = false;
+const SHOW_TIMING_MATH = true;
 
 // Start server
 function startServer(port) {
