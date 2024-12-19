@@ -50,7 +50,7 @@ class MessageHandler {
         break;
 
       case "session.updated":
-        console.log("🆕 Session Updated");
+        console.log("🆕 Session Updated:", messageStr);
         break;
 
       case "input_audio_buffer.speech_started":
