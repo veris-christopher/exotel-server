@@ -40,7 +40,7 @@ const LOG_EVENT_TYPES = [
 ];
 
 // Show AI response elapsed timing calculations
-const SHOW_TIMING_MATH = false;
+const SHOW_TIMING_MATH = true;
 
 // Start server
 function startServer(port) {
