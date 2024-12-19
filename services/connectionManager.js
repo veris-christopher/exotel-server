@@ -149,7 +149,7 @@ class ConnectionManager {
             console.log("✅ OpenAI WebSocket Connected")
 
         });
-        rws.on('message', (message) => messageHandler.handleOpenAIMessage(ws, this.CONSTANTS.DEFAULT_STREAM_SID, message));
+        rws.on('message', (message) => messageHandler.handleOpenAIMessage(ws, rws, this.CONSTANTS.DEFAULT_STREAM_SID, message));
         rws.on('error', (error) => console.error("❌ OpenAI WebSocket Error:", error));
         rws.on('close', () => console.log("🔌 OpenAI WebSocket Closed"));
 

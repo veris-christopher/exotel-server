@@ -13,7 +13,7 @@ class MessageHandler {
     console.log("Supported Events:", Object.values(this.EVENTS));
   }
 
-  async handleOpenAIMessage(ws, streamSid, messageStr) {
+  async handleOpenAIMessage(ws, rws, streamSid, messageStr) {
     console.log("\n📨 Handling OpenAI Message");
     console.log("Stream SID:", streamSid);
 
