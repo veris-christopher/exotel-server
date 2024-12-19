@@ -37,20 +37,20 @@ class MessageHandler {
       case "session.created":
         console.log("🆕 Session Created:", message.session.id);
 
-        rws.send(JSON.stringify({
-          type: "session.update",
-          session: {
-            turn_detection: {
-              type: "server_vad",
-              threshold: 1
-            }
-          }
-        }));
+        // rws.send(JSON.stringify({
+        //   type: "session.update",
+        //   session: {
+        //     turn_detection: {
+        //       type: "server_vad",
+        //       threshold: 1
+        //     }
+        //   }
+        // }));
 
         break;
 
       case "session.updated":
-        console.log("🆕 Session Updated:", messageStr);
+        console.log("🆕 Session Updated");
         break;
 
       case "input_audio_buffer.speech_started":
