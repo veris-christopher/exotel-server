@@ -98,7 +98,7 @@ class MessageHandler {
     const audioBuffer = Buffer.concat(audioData);
 
     if (rws.readyState === WebSocket.OPEN) {
-      // console.log("📤 Sending audio to OpenAI");
+      console.log("📤 Sending audio to OpenAI");
 
       // Send audio to input buffer for VAD processing
       rws.send(JSON.stringify({
