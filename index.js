@@ -30,7 +30,6 @@ const VOICE = 'alloy';
 // List of Event Types to log to the console. See the OpenAI Realtime API Documentation: https://platform.openai.com/docs/api-reference/realtime
 const LOG_EVENT_TYPES = [
   'error',
-  'response.audio.delta',
   'response.content.done',
   'rate_limits.updated',
   'response.done',
