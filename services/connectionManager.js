@@ -51,19 +51,19 @@ class ConnectionManager {
 
     async handleClientMessage(ws, state, message) {
         try {
-            console.log("\n=== Raw Message ===");
-            console.log(message.toString());
+            // console.log("\n=== Raw Message ===");
+            // console.log(message.toString());
 
             const data = JSON.parse(message);
             const streamSid = data.stream_sid || this.CONSTANTS.DEFAULT_STREAM_SID;
 
-            console.log("\n📨 Client Message");
-            console.log("Event Type:", data.event);
-            console.log("Stream SID:", streamSid);
-            if (data.media) {
-                console.log("Has Media Payload:", !!data.media.payload);
-                console.log("Media Payload Length:", data.media.payload ? data.media.payload.length : 0);
-            }
+            // console.log("\n📨 Client Message");
+            // console.log("Event Type:", data.event);
+            // console.log("Stream SID:", streamSid);
+            // if (data.media) {
+            //     console.log("Has Media Payload:", !!data.media.payload);
+            //     console.log("Media Payload Length:", data.media.payload ? data.media.payload.length : 0);
+            // }
 
             switch (data.event) {
                 case 'media':

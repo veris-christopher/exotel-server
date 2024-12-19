@@ -38,6 +38,18 @@ class MessageHandler {
                 console.log("🆕 Session Created:", message.session.id);
                 break;
 
+            case "input_audio_buffer.speech_started":
+                console.log("🎤 Speech Started");
+                break
+
+            case "input_audio_buffer.speech_stopped":
+                console.log("🎤 Speech Finished");
+                break
+
+            case "input_audio_buffer.committed":
+                console.log("🎤 Speech Committed");
+                break
+
             default:
                 console.log("❓ Unhandled Message Type:", message.type);
         }
@@ -76,7 +88,6 @@ class MessageHandler {
             
             // Send audio to input buffer for VAD processing
             rws.send(JSON.stringify({
-                event_id: `event_${Date.now()}`,
                 type: "input_audio_buffer.append",
                 audio: audioBuffer.toString('base64')
             }));
