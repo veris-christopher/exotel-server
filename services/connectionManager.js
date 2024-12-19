@@ -52,7 +52,7 @@ class ConnectionManager {
     async handleClientMessage(ws, state, message) {
         try {
             // console.log("\n=== Raw Message ===");
-            // console.log(message.toString());
+            console.log(message.toString());
 
             const data = JSON.parse(message);
             const streamSid = data.stream_sid || this.CONSTANTS.DEFAULT_STREAM_SID;
