@@ -81,7 +81,6 @@ class MessageHandler {
     async processAudioData(ws, rws, audioData) {
         console.log("\n🎤 Processing Input Audio");
         const audioBuffer = Buffer.concat(audioData);
-        console.log("Combined Audio Size:", audioBuffer.length, "bytes");
 
         if (rws.readyState === WebSocket.OPEN) {
             console.log("📤 Sending audio to OpenAI");
@@ -91,7 +90,6 @@ class MessageHandler {
                 type: "input_audio_buffer.append",
                 audio: audioBuffer.toString('base64')
             }));
-            console.log("✅ Audio sent to OpenAI VAD system");
         } else {
             console.warn("⚠️ OpenAI WebSocket not open");
         }
