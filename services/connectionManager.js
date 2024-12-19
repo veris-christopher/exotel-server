@@ -110,7 +110,7 @@ class ConnectionManager {
                 console.log("\n🎵 First Media Event Received - Audio streaming is working");
                 ConnectionManager.hasReceivedFirstMedia = true;
             }
-            
+
             if (!data.media || !data.media.payload) {
                 console.warn("⚠️ Invalid media data received");
                 return;
@@ -147,16 +147,8 @@ class ConnectionManager {
 
         rws.on('open', () => {
             console.log("✅ OpenAI WebSocket Connected")
-            
-            rws.send(JSON.stringify({
-                type: "session.update",
-                session: {
-                    turn_detection: {
-                        threshold: 1
-                    }
-                }
-            }));
-    });
+
+        });
         rws.on('message', (message) => messageHandler.handleOpenAIMessage(ws, this.CONSTANTS.DEFAULT_STREAM_SID, message));
         rws.on('error', (error) => console.error("❌ OpenAI WebSocket Error:", error));
         rws.on('close', () => console.log("🔌 OpenAI WebSocket Closed"));
