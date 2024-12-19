@@ -201,9 +201,10 @@ function startServer(port) {
             latestMediaTimestamp = data.media.timestamp;
             if (SHOW_TIMING_MATH) console.log(`Received media message with timestamp: ${latestMediaTimestamp}ms`);
             if (openAiWs.readyState === WebSocket.OPEN) {
+              const chunk = Buffer.from(data.media.payload, 'base64');
               const audioAppend = {
                 type: 'input_audio_buffer.append',
-                audio: data.media.payload
+                audio: chunk.toString('base64')
               };
               openAiWs.send(JSON.stringify(audioAppend));
             }
