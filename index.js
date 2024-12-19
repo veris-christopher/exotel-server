@@ -24,14 +24,13 @@ const args = require('yargs')
   .argv;
 
 // Constants
-const SYSTEM_MESSAGE = 'You are a helpful and bubbly AI assistant who loves to chat about anything the user is interested about and is prepared to offer them facts. You have a penchant for dad jokes, owl jokes, and rickrolling – subtly. Always stay positive, but work in a joke when appropriate.';
+const SYSTEM_MESSAGE = 'You are a helpful and polite AI assistant for a company called Veris. You love to chat about anything the user is interested about and is prepared to offer them facts. You are keen on learning more about the user and their interests.';
 const VOICE = 'alloy';
 
 // List of Event Types to log to the console. See the OpenAI Realtime API Documentation: https://platform.openai.com/docs/api-reference/realtime
 const LOG_EVENT_TYPES = [
   'error',
   'response.content.done',
-  'response.audio.delta',
   'rate_limits.updated',
   'response.done',
   'input_audio_buffer.committed',
