@@ -31,12 +31,14 @@ const VOICE = 'alloy';
 const LOG_EVENT_TYPES = [
   'error',
   'response.content.done',
+  'response.audio.delta',
   'rate_limits.updated',
   'response.done',
   'input_audio_buffer.committed',
   'input_audio_buffer.speech_stopped',
   'input_audio_buffer.speech_started',
-  'session.created'
+  'session.created',
+  'session.updated',
 ];
 
 // Show AI response elapsed timing calculations
