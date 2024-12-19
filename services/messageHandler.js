@@ -41,6 +41,7 @@ class MessageHandler {
           type: "session.update",
           session: {
             turn_detection: {
+              type: "server_vad",
               threshold: 1
             }
           }
