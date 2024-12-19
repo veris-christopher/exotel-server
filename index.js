@@ -39,6 +39,7 @@ const LOG_EVENT_TYPES = [
   'input_audio_buffer.speech_started',
   'session.created',
   'session.updated',
+  'input_audio_buffer.append'
 ];
 
 // Show AI response elapsed timing calculations
@@ -201,7 +202,6 @@ function startServer(port) {
             latestMediaTimestamp = data.media.timestamp;
             if (SHOW_TIMING_MATH) console.log(`Received media message with timestamp: ${latestMediaTimestamp}ms`);
             if (openAiWs.readyState === WebSocket.OPEN) {
-              console.log('Sending audio chunk to OpenAI');
               const chunk = Buffer.from(data.media.payload, 'base64');
               const audioAppend = {
                 type: 'input_audio_buffer.append',
