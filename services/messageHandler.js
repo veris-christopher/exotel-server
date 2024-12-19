@@ -65,7 +65,7 @@ class MessageHandler {
         break
 
       default:
-        console.log("❓ Unhandled Message Type:", message.type);
+        console.log("❓ Unhandled Message Type:", message);
     }
   }
 
