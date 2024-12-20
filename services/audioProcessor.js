@@ -120,7 +120,7 @@ class AudioProcessor {
         // console.log("Optimized Audio:", processedBuffer.length, "bytes");
 
         // Upsample from 8kHz to 24kHz
-        processedBuffer = this.upsampleTo24k(processedBuffer);
+        let processedBuffer = this.upsampleTo24k(audioBuffer);
         console.log("Upsampled Audio (24kHz):", processedBuffer.length, "bytes");
 
         return processedBuffer;
