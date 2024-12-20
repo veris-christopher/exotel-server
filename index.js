@@ -1,3 +1,4 @@
+require('./sentry');
 require('dotenv').config();
 const express = require('express');
 const WebSocket = require('ws');
@@ -69,6 +70,8 @@ function startServer(port) {
     let markQueue = [];
     let responseStartTimestamp = null;
     let openAiWs = null;
+    let mediaTimeoutId;
+    let startEventTime;
 
     const cleanup = () => {
       if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
@@ -199,6 +202,11 @@ function startServer(port) {
           case 'media':
             latestMediaTimestamp = data.media.timestamp;
             if (SHOW_TIMING_MATH) console.log(`Received media message with timestamp: ${latestMediaTimestamp}ms`);
+            // Clear the timeout since we received media
+            if (mediaTimeoutId) {
+              clearTimeout(mediaTimeoutId);
+              mediaTimeoutId = null;
+            }
             if (openAiWs.readyState === WebSocket.OPEN) {
               const inputBuffer = Buffer.from(data.media.payload, 'base64');
               const processedBuffer = audioProcessor.processUserAudio(inputBuffer);
@@ -212,6 +220,15 @@ function startServer(port) {
             }
             break;
           case 'start':
+            // Set start time and create timeout
+            startEventTime = Date.now();
+            if (mediaTimeoutId) {
+              clearTimeout(mediaTimeoutId);
+            }
+            mediaTimeoutId = setTimeout(() => {
+              console.error('No media event received within 5 seconds of start event');
+              mediaTimeoutId = null;
+            }, 5000);
             streamSid = data.start.streamSid;
             console.log('Incoming stream has started', streamSid);
 
