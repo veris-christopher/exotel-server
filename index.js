@@ -8,8 +8,7 @@ Sentry.init({
 require('dotenv').config();
 const express = require('express');
 const WebSocket = require('ws');
-const audioProcessor = require('./services/audioProcessor');
-
+const audioProcessor = require('./audioProcessor');
 
 // Retrieve the OpenAI API key from environment variables.
 const { OPENAI_API_KEY } = process.env;
@@ -205,8 +204,6 @@ function startServer(port) {
     connection.on('message', (message) => {
       try {
         const data = JSON.parse(message);
-
-        console.log('Received message:', data);
 
         switch (data.event) {
           case 'media':
