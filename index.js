@@ -147,7 +147,7 @@ function startServer(port) {
     // Open event for OpenAI WebSocket
     openAiWs.on('open', () => {
       console.log('Connected to the OpenAI Realtime API');
-      setTimeout(initializeSession, 500);
+      // setTimeout(initializeSession, 500);
     });
 
     // Listen for messages from the OpenAI WebSocket (and send if necessary)
