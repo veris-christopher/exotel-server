@@ -198,6 +198,8 @@ function startServer(port) {
       try {
         const data = JSON.parse(message);
 
+        console.log('Received message:', data);
+
         switch (data.event) {
           case 'media':
             latestMediaTimestamp = data.media.timestamp;
