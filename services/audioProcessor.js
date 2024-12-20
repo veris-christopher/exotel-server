@@ -28,6 +28,34 @@ class AudioProcessor {
         return outputBuffer;
     }
 
+    upsampleTo24k(buffer) {
+        console.log("\n🎵 Upsampling Audio");
+        console.log("Input Buffer Size:", buffer.length, "bytes");
+        
+        const upsampleRatio = this.SAMPLE_RATE.INPUT / this.SAMPLE_RATE.OUTPUT;
+        const inputSamples = buffer.length / this.BYTES_PER_SAMPLE;
+        const outputSamples = Math.floor(inputSamples * upsampleRatio);
+
+        const outputBuffer = Buffer.alloc(outputSamples * this.BYTES_PER_SAMPLE);
+
+        for (let i = 0; i < outputSamples; i++) {
+            const inputIndex = i / upsampleRatio;
+            const inputIndexFloor = Math.floor(inputIndex);
+            const inputIndexCeil = Math.min(inputIndexFloor + 1, inputSamples - 1);
+            const fraction = inputIndex - inputIndexFloor;
+
+            const sample1 = buffer.readInt16LE(inputIndexFloor * this.BYTES_PER_SAMPLE);
+            const sample2 = buffer.readInt16LE(inputIndexCeil * this.BYTES_PER_SAMPLE);
+            
+            // Linear interpolation between samples
+            const interpolatedSample = Math.round(sample1 * (1 - fraction) + sample2 * fraction);
+            outputBuffer.writeInt16LE(interpolatedSample, i * this.BYTES_PER_SAMPLE);
+        }
+
+        console.log("Output Buffer Size:", outputBuffer.length, "bytes");
+        return outputBuffer;
+    }
+
     optimizeChunk(audioBuffer) {
         console.log("\n🔧 Optimizing Audio Chunk");
         const CHUNK_CONSTRAINTS = {
@@ -82,6 +110,20 @@ class AudioProcessor {
         console.log("Optimized Audio:", optimizedBuffer.length, "bytes");
 
         return optimizedBuffer;
+    }
+
+    processUserAudio(audioBuffer) {
+        console.log("\n🔄 Processing User Audio");
+        
+        // // First optimize the chunk size
+        // let processedBuffer = this.optimizeChunk(audioBuffer);
+        // console.log("Optimized Audio:", processedBuffer.length, "bytes");
+
+        // Upsample from 8kHz to 24kHz
+        processedBuffer = this.upsampleTo24k(processedBuffer);
+        console.log("Upsampled Audio (24kHz):", processedBuffer.length, "bytes");
+
+        return processedBuffer;
     }
 }
 
