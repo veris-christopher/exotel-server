@@ -1,8 +1,15 @@
-require('./sentry');
+const Sentry = require("@sentry/node");
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 1.0,
+});
+
 require('dotenv').config();
 const express = require('express');
 const WebSocket = require('ws');
 const audioProcessor = require('./services/audioProcessor');
+
 
 // Retrieve the OpenAI API key from environment variables.
 const { OPENAI_API_KEY } = process.env;
@@ -190,6 +197,7 @@ function startServer(port) {
         }
       } catch (error) {
         console.error('Error processing OpenAI message:', error, 'Raw message:', data);
+        Sentry.captureException(error);
       }
     });
 
@@ -229,6 +237,7 @@ function startServer(port) {
             }
             mediaTimeoutId = setTimeout(() => {
               console.error('No media event received within 5 seconds of start event');
+              Sentry.captureException('No media event received within 5 seconds of start event');
               mediaTimeoutId = null;
             }, 5000);
             streamSid = data.start.streamSid;
@@ -249,6 +258,7 @@ function startServer(port) {
         }
       } catch (error) {
         console.error('Error parsing message:', error, 'Message:', message);
+        Sentry.captureException(error);
       }
     });
 
@@ -266,6 +276,7 @@ function startServer(port) {
 
     openAiWs.on('error', (error) => {
       console.error('Error in the OpenAI WebSocket:', error);
+      Sentry.captureException(error);
       cleanup();
     });
   });
