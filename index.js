@@ -94,7 +94,7 @@ const LOG_EVENT_TYPES = [
 ];
 
 // Show AI response elapsed timing calculations
-const SHOW_TIMING_MATH = true;
+const SHOW_TIMING_MATH = false;
 
 // Start server
 function startServer(port) {
@@ -217,7 +217,7 @@ function startServer(port) {
     // Open event for OpenAI WebSocket
     openAiWs.on("open", () => {
       console.log("Connected to the OpenAI Realtime API");
-      // setTimeout(initializeSession, 500);
+      setTimeout(initializeSession, 500);
     });
 
     // Listen for messages from the OpenAI WebSocket (and send if necessary)

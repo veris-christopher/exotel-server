@@ -9,8 +9,8 @@ class AudioProcessor {
   }
 
   downsampleTo8k(buffer) {
-    console.log("Downsampling Audio");
-    console.log("Input Buffer Size:", buffer.length, "bytes");
+    // console.log("Downsampling Audio");
+    // console.log("Input Buffer Size:", buffer.length, "bytes");
 
     const downsampleRatio = this.SAMPLE_RATE.INPUT / this.SAMPLE_RATE.OUTPUT;
     const inputSamples = buffer.length / this.BYTES_PER_SAMPLE;
@@ -24,7 +24,7 @@ class AudioProcessor {
       outputBuffer.writeInt16LE(sample, i * this.BYTES_PER_SAMPLE);
     }
 
-    console.log("Output Buffer Size:", outputBuffer.length, "bytes");
+    // console.log("Output Buffer Size:", outputBuffer.length, "bytes");
     return outputBuffer;
   }
 
@@ -119,7 +119,7 @@ class AudioProcessor {
   }
 
   processUserAudio(audioBuffer) {
-    console.log("Processing User Audio");
+    // console.log("Processing User Audio");
 
     // // First optimize the chunk size
     // let processedBuffer = this.optimizeChunk(audioBuffer);
@@ -127,7 +127,7 @@ class AudioProcessor {
 
     // Upsample from 8kHz to 24kHz
     let processedBuffer = this.upsampleTo24k(audioBuffer);
-    console.log("Upsampled Audio (24kHz):", processedBuffer.length, "bytes");
+    // console.log("Upsampled Audio (24kHz):", processedBuffer.length, "bytes");
 
     return processedBuffer;
   }
